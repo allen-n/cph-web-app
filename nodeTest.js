@@ -11,8 +11,13 @@ var postHTML =
   '<ul class="dataList"> </ul>' +
   '</body></html>';
 
-const cheerio = require('cheerio')
-const $ = cheerio.load('<h2 class="title">Hello world</h2>')
+  var cheerio = require('cheerio'),
+      $ = cheerio.load('<h3 class = "title">Hello world</h3>');
+
+  $('h3.title').text('Hello there!');
+  $('h3').addClass('welcome');
+
+  $.html();
 
 // var particleSRC = '//cdn.jsdelivr.net/particle-api-js/5/particle.min.js';
 // $.getScript(particleSRC, function() {
