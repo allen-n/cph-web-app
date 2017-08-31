@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+  
+<html>
+   
+   <head>
+       <!--I used http://createjs.com/getting-started-->
+      <style>div{
+         border: double;
+      }</style>
+     <title>Chat Room Page</title>
+     <meta charset="UTF-8">
+     <!--<style>
+      div{
+         border-style: solid;
+      }
+     </style>-->
+   </head>
+   
+   <body onload="init();">
+      
+         <div id="login" onload="init();">Login: 
+            <input type="text" id="username"/>
+            <input type="password" id="password"/>
+            <button onclick="login()">Login</button>
+         </div>      
+         <div onload="init();" id="Circuit_Controls">
+            <p onload="init();">
+               Circuit 1, enter change in total load (load characteristic of device, use negative numbers for removed device: <br>
+               Watts: <input type="text" id="watts1"/>
+               Current: <input type="text" id="current1"/>
+               Voltage: <input type="text" id="voltage1"/>
+               <button onclick="logEnergy('1');">Log Energy Change</button>
+            </p>
+            <p>
+               Enter New Device Characteristics (circuit 2) : <br>
+               Device Name: <input type="text" id="deviceName"/>
+               Watts: <input type="text" id="watts2"/>
+               Current: <input type="text" id="current2"/>
+               Voltage: <input type="text" id="voltage2"/>
+               <button onclick="createDevice('2');">Create Device Profile</button>
+               
+            </p>
+         </div>
+         
+         <div>
+            <h1>Setting Relay 1</h1>
+            <form method="post">
+               <input type="radio" name="setRelay1" value="on"> Circuit On<br>
+               <input type="radio" name="setRelay1" value="off"> Circuit Off<br>
+            </form>
+         </div>
+         <div id="successDevices"></div>
+          <div id="devices"></div>
+          
+         
+         <div id = "charts">
+                <button onclick="updateDisplay();">Update Display</button><br>
+               <input type="radio" id="r2" name="display" value="Hour"> Hour<br>
+               <input type="radio" id="r3" name="display" value="Day" checked> Day<br>
+               <input type="radio" id="r4" name="display" value="Month"> Month<br>
+               <input type="radio" id="r5" name="display" value="Year"> Year<br>
+            
+            <div>
+               <p>Current</p>  
+               <canvas id="current" width="500" height="500"></canvas>
+            </div>
+            
+            <div>
+               <p>Voltage</p>
+               <canvas id="voltage" width="500" height="500"></canvas>
+            </div>
+            <div>
+               <p>Power</p>
+               <canvas id="power" width="500" height="500"></canvas>
+            </div>
+         </div>
+         
+         
+     
+   <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+     
+      <script type ="text/javascript">
+         
+      //page load call, to hide elements and make clear the need to log-in
+      function init() {
+         document.getElementById("charts").style.display = "none";
+         document.getElementById("devices").style.display = "none";
+         document.getElementById("successDevices").style.display = "none";
+         document.getElementById("Circuit_Controls").style.display = "none";
+         document.getElementById("r2").style.display = "none";
+      }
+         
+      var user =null;
+       var socketio = io.connect();
+      
+       //function used to login a user
+      function login(){
+         var userTemp = document.getElementById("username").value;
+         var pass = document.getElementById("password").value;
+         if(userTemp === "")
+         {
+            ("You must enter a username");
+         }
+         else{
+            user = userTemp;
+            socketio.emit("login_attempt",{userName:user,password:pass});
+         }
+      }
+      
+      //record a sumbitted change in usage
+      function logEnergy(number){
+         if(user === null){
+            ("Must be logged in to procceed");
+         }
+         else{
+            var wattString = "watts" + number;
+            var watts = document.getElementById(wattString).value;
+            
+            var currentString = "current" + number;
+            var current = document.getElementById(currentString).value;
+            
+            var voltageString = "voltage" + number;
+            var voltage = document.getElementById(voltageString).value;
+            
+            socketio.emit("logEnergy", {user:user, watts:watts, current:current,voltage:voltage});
+         }
+      }
+      
+      //update graphs
+      function updateDisplay(){
+         
+         var dimension = "";
+         if (document.getElementById('r2').checked) {
+            dimension = document.getElementById('r2').value;
+         }
+         if (document.getElementById('r3').checked) {
+            dimension = document.getElementById('r3').value;
+         }
+         if (document.getElementById('r4').checked) {
+            dimension = document.getElementById('r4').value;
+         }
+         if (document.getElementById('r5').checked) {
+            dimension = document.getElementById('r5').value;
+         }
+         if(dimension ===""){
+            alert("Please select a view size");
+         }
+         else{
+            socketio.emit("updateDisplay", {user:user,dimension:dimension});
+         }
+         
+      }
+      
+      //call used to begin creation of device 
+      function createDevice(number){
+         if(user === null){
+            alert("Must be logged in to procceed");
+         }
+         else{
+            var deviceName = document.getElementById("deviceName").value;
+            
+            var wattString = "watts" + number;
+            var watts = document.getElementById(wattString).value;
+            
+            var currentString = "current" + number;
+            var current = document.getElementById(currentString).value;
+            
+            var voltageString = "voltage" + number;
+            var voltage = document.getElementById(voltageString).value;
+            
+            socketio.emit("createDevice", {user:user,deviceName:deviceName, watts:watts, current:current,voltage:voltage});
+         }
+      }
+      
+      //updating screen in response to successful login
+      socketio.on("loginResult",function(data) {
+          if(!data.successUser){
+            alert("Username not recognized");
+          }
+          else{
+            if(!data.successPass){
+               alert("Password incorrect");
+            }
+          }
+          if(data.successUser && data.successPass){
+            alert(data.user + " is logged-in");
+            user = data.user;
+            document.getElementById("charts").style.display = "block";
+            document.getElementById("devices").style.display = "block";
+            document.getElementById("successDevices").style.display = "block";
+            document.getElementById("Circuit_Controls").style.display = "block";
+            document.getElementById("login").style.display = "none";
+            
+            document.getElementById("devices").innerHTML = "Identified devices: ";
+            document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+            
+            updateDisplay();
+            socketio.emit("pullDevices", {user:user});
+            
+          }
+      });
+      
+       //response to success full logged change
+      socketio.on("changeLogged",function(data) {
+         if(user == data.user){
+            alert("change logged");
+            updateDisplay();
+            socketio.emit("pullDevices", {user:user});
+         }
+      });
+      //response to device being successfully created
+       socketio.on("deviceCreated",function(data) {
+         if(user == data.user){
+            alert("device "+data.deviceName+" has been created");
+            socketio.emit("pullDevices", {user:user});
+         }
+      });
+       //creating updated list of known devices 
+       socketio.on("devicesUpdate",function(data) {
+         if(data.first === true){
+            document.getElementById("devices").innerHTML = "Identified devices: ";
+         }
+         document.getElementById("devices").appendChild(document.createElement("br"));
+         document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage+ " Power: " + data.power));
+         
+      });
+       
+       //creating updated list of "on devices"
+       socketio.on("successDevicesUpdate",function(data) {
+         alert("entered successdevicesUpdate");
+         if(data.first === true){
+            document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+         }
+         document.getElementById("successDevices").appendChild(document.createElement("br"));
+         document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage+ " Power: " + data.power));
+      });
+       
+
+      //ALL BELOW IS GRAPH BUILDER
+      
+      //global vars
+      var chart1Data = [];
+      var chart1Datax =[];
+      var chart1Datay =[];
+      
+      var chart2Data = [];
+      var chart2Datax =[];
+      var chart2Datay =[];
+      
+      var chart3Data = [];
+      var chart3Datax =[];
+      var chart3Datay =[];
+      
+      
+      
+      //update result return, prepare for graph building
+      socketio.on("updateResult",function(data) {
+         
+         if(data.stage === "first"){
+            chart1Data = [];
+            chart1Datax =[];
+            chart1Datay =[];
+            
+            chart2Data = [];
+            chart2Datax =[];
+            chart2Datay =[];
+            
+            chart3Data = [];
+            chart3Datax =[];
+            chart3Datay =[];
+         }
+         chart1Datax.push(data.x1);
+         chart1Datay.push(data.y1);
+         
+         chart2Datax.push(data.x2);
+         chart2Datay.push(data.y2);
+         
+         chart3Datax.push(data.x3);
+         chart3Datay.push(data.y3);
+         
+         if(data.stage === "final"){
+            chart1Data.push(chart1Datax);
+            chart1Data.push(chart1Datay);
+            
+            chart2Data.push(chart2Datax);
+            chart2Data.push(chart2Datay);
+            
+            chart3Data.push(chart3Datax);
+            chart3Data.push(chart3Datay);
+            
+            dataPlacement("current",chart1Data,"Current",data.dimension);
+            dataPlacement("voltage",chart2Data,"Voltage",data.dimension);
+            dataPlacement("power",chart3Data,"Watts",data.dimension);
+         }
+         
+      });
+      
+      
+    //below is Easle.JS work to create charts  
+      function dataPlacement(name,chartData, Yaxis, Xaxis){
+         
+         //data placement
+         var maxX = maxValue(chartData,0);
+         var maxY = maxValue(chartData,1);
+         var bufferPercent = 0.1;
+         
+         var chartWidth = document.getElementById(name).width;
+         var chartHeight = document.getElementById(name).height;
+         
+         var adjustedWidth = chartWidth * (1-(2*bufferPercent));
+         var adjustedHeight = chartHeight * (1-(2*bufferPercent));
+         
+         
+         var stageChart1 = new createjs.Stage(name);
+         
+         //add all data points to chart
+         for(var i =0;i<chartData[0].length;i++){
+            var circle = new createjs.Shape();
+            circle.graphics.beginFill("red").drawCircle(0, 0, 10);
+            
+            var x = (chartData[0][i] / maxX)*adjustedWidth;
+            var y = (chartData[1][i] / maxY)*adjustedHeight;
+            y= chartHeight-y;
+            
+            x=x+(chartWidth * bufferPercent);
+            y=y-(chartHeight * bufferPercent);
+            
+            circle.x = x;
+            circle.y = y;
+            stageChart1.addChild(circle);
+         }
+         
+         //add axis to chart
+         var oX = chartWidth * bufferPercent;
+         var oY = chartHeight * (1-bufferPercent);
+         
+         var fX = chartWidth * (1-bufferPercent);
+         var fY = chartHeight* bufferPercent;
+         
+         var xAxis = new createjs.Shape();
+         xAxis.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
+         xAxis.graphics.moveTo(oX,oY);
+         xAxis.graphics.lineTo(fX,oY);
+         stageChart1.addChild(xAxis);
+         
+         var yAxis = new createjs.Shape();
+         yAxis.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
+         yAxis.graphics.moveTo(oX,oY);
+         yAxis.graphics.lineTo(oX,fY);
+         stageChart1.addChild(yAxis);
+         
+         var tickPositionArr = tickPositions(oX,oY,fX,fY,4 );
+         
+         //labeling axis
+         for(i=0;i<tickPositionArr[0].length;i++){
+            
+            //x-axis
+            var xPos = tickPositionArr[0][i];
+            var xTick = new createjs.Shape();
+            xTick.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
+            xTick.graphics.moveTo(xPos,oY);
+            xTick.graphics.lineTo(xPos,oY+10);
+            stageChart1.addChild(xTick);
+            
+            var positionXLabel = ((xPos-oX) / adjustedWidth) * maxX;
+            var positionInt = Math.round(positionXLabel);
+            var textX = new createjs.Text(positionInt, "20px Arial", "#ff7700");
+            textX.x = xPos + 3;
+            textX.y=oY+18;
+            textX.textBaseline = "alphabetic";
+            stageChart1.addChild(textX);
+            
+            //y-axis
+            var yPos = tickPositionArr[0][i];
+            var yTick = new createjs.Shape();
+            yTick.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
+            yTick.graphics.moveTo(oX,yPos);
+            yTick.graphics.lineTo(oX-10, yPos);
+            stageChart1.addChild(yTick);
+            
+            var positionYLabel = (-1*(yPos-oY) / adjustedHeight) * maxY;
+            var textY = new createjs.Text(positionYLabel, "20px Arial", "#ff7700");
+            textY.y=yPos;
+            textY.x=oX-50;
+            textY.textBaseline = "alphabetic";
+            stageChart1.addChild(textY); 
+         }
+         
+         var textYaxis = new createjs.Text(Yaxis, "20px Arial", "#ff7700");
+         textYaxis.y=fY-25;
+         textYaxis.x=oX-50;
+         textYaxis.textBaseline = "alphabetic";
+         stageChart1.addChild(textYaxis);
+         
+         var textXaxis = new createjs.Text(Xaxis, "20px Arial", "#ff7700");
+         textXaxis.x=((fX+oX)/2) - 25;
+         textXaxis.y=oY+35;
+         textXaxis.textBaseline = "alphabetic";
+         stageChart1.addChild(textXaxis);
+         
+         
+         stageChart1.update();
+      }
+      
+      //calculate where the ticks should be
+      function tickPositions(oX,oY,fX,fY,numDivs){
+         var divSizeX =(fX-oX)/numDivs;
+         var divSizeY = (fY-oY)/numDivs;
+         
+         var tickPositionsArr = [];
+         var xArr=[];
+         var yArr=[];
+         
+         for(var i=0;i<=numDivs;i++){
+            xArr.push(oX + divSizeX*i);
+            yArr.push(oY - divSizeY*i);
+         }
+         tickPositionsArr.push(xArr);
+         tickPositionsArr.push(yArr);
+         return tickPositionsArr;
+      }
+      
+      //find the max value of array
+      function maxValue(x, position){
+         var max =0;
+         for(var j=0;j<x[position].length;j++){
+            if(x[position][j]>max){
+               max = x[position][j];
+            }
+         }
+         return max;
+      }
+      
+      //rounding function taken from: http://www.jacklmoore.com/notes/rounding-in-javascript/
+      function round(value, decimals) {
+         return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+      }
+      </script>
+   </body> 
+</html>
