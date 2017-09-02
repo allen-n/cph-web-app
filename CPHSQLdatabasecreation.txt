@@ -1,4 +1,4 @@
-CPH SQL Database creation
+SPH SQL Database Creation Number 2
 
 mysql -u root -p 
 
@@ -18,15 +18,23 @@ CREATE TABLE users(
 	dataTable_name VARCHAR(150) NOT NULL,
 	PRIMARY KEY (user_id)) 
 
-INSERT INTO users (password, userName, dataTable_name) VALUES (passwordA1, userA1, timeEntryuserA1)
+INSERT INTO users (password, userName, dataTable_name) VALUES (passwordA1, userA1, timeEntryuserA1) //must add quotation marks
 
 
-CREATE TABLE timeEntryuserA2(
+CREATE TABLE timeEntryuserA1(
 	event_id MEDIUMINT NOT NULL AUTO_INCREMENT,
 	time TIMESTAMP NOT NULL,
 	current FLOAT,
 	voltage FLOAT,
-	power FLOAT,
+	Pfactor FLOAT,
+	apparentP FLOAT,
+	realP FLOAT,
+	reactiveP FLOAT,
+	firstH FLOAT,
+	secondH FLOAT,
+	thirdH FLOAT,
+	fourthH FLOAT,
+	fifthH FLOAT,
 	x1 FLOAT,
 	x2 FLOAT,
 	x3 FLOAT,
@@ -38,9 +46,18 @@ CREATE TABLE timeEntryuserA2(
 create table devices(
 	device_id MEDIUMINT NOT NULL AUTO_INCREMENT,
 	time TIMESTAMP NOT NULL,
+	name VARCHAR(100),
 	current FLOAT,
 	voltage FLOAT,
-	power FLOAT,
+	Pfactor FLOAT,
+	apparentP FLOAT,
+	realP FLOAT,
+	reactiveP FLOAT,
+	firstH FLOAT,
+	secondH FLOAT,
+	thirdH FLOAT,
+	fourthH FLOAT,
+	fifthH FLOAT,
 	x1 FLOAT,
 	text1 VARCHAR(150),
 	PRIMARY KEY (device_id))

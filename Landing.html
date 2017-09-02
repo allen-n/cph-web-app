@@ -42,8 +42,8 @@
             </p>
          </div>
          
-         <div>
-            <h1>Setting Relay 1</h1>
+         <div id="Control">
+            Setting Relay 1
             <form method="post">
                <input type="radio" name="setRelay1" value="on"> Circuit On<br>
                <input type="radio" name="setRelay1" value="off"> Circuit Off<br>
@@ -89,6 +89,7 @@
          document.getElementById("successDevices").style.display = "none";
          document.getElementById("Circuit_Controls").style.display = "none";
          document.getElementById("r2").style.display = "none";
+         document.getElementById("Control").style.display = "none";
       }
          
       var user =null;
@@ -191,6 +192,7 @@
             document.getElementById("successDevices").style.display = "block";
             document.getElementById("Circuit_Controls").style.display = "block";
             document.getElementById("login").style.display = "none";
+            document.getElementById("Control").style.display = "block";
             
             document.getElementById("devices").innerHTML = "Identified devices: ";
             document.getElementById("successDevices").innerHTML = "Currently powered devices: ";

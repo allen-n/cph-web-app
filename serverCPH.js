@@ -68,25 +68,28 @@ http.createServer(function(req, res) {
 			req.on('end', function() {
 			  var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
 			  if (patt.test(body)) {
-				// var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
-				var dataArray = body.match(/[0-9]*[.][0-9]*/g);
-				var labelArray = ["current", "voltage", "power factor",
-				  "apparent power", "real power", "reactive power", "error"
-				];
-				for (i = 0; i < dataArray.length - 1; i++) {
-				  // dataArray[i].replace(/[=]/g,"");
-				  // dataArray[i].replace(/[C]/g,"");
-				  console.log(labelArray[i] + '= ' + dataArray[i]);
-				}
-				var dateStamp = body.match(/[0-9]{4}[-][0-9]{2}[-][0-9]{2}/);
-				var timeStamp = body.match(/[0-9]{2}%3A[0-9]{2}%3A[0-9]{2}/);
-				var newTimeStamp = timeStamp[0].replace(/%3A/g,":");
-				console.log(newTimeStamp + " " + dateStamp[0]);
-			  }
+          // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
+          var dataArray = body.match(/[0-9]*[.][0-9]*/g);
+          var labelArray = ["current", "voltage", "power factor",
+            "apparent power", "real power", "reactive power", "error"
+          ];
+          for (i = 0; i < dataArray.length - 1; i++) {
+            // dataArray[i].replace(/[=]/g,"");
+            // dataArray[i].replace(/[C]/g,"");
+            console.log(labelArray[i] + '= ' + dataArray[i]);
+          }
+          var dateStamp = body.match(/[0-9]{4}[-][0-9]{2}[-][0-9]{2}/);
+          var timeStamp = body.match(/[0-9]{2}%3A[0-9]{2}%3A[0-9]{2}/);
+          var newTimeStamp = timeStamp[0].replace(/%3A/g,":");
+          console.log(newTimeStamp + " " + dateStamp[0]);
+          storeIncomingData(dataArray,labelArray);
+        }
 			  console.log('Original: ' + body);
 			  res.writeHead(200);
 			  res.end(postHTML);
 		  
+        
+      
 			  // $(body).insertBefore(".dataList") //FIXME
 			});
 		}).listen(3456);
@@ -103,6 +106,20 @@ con.connect(function(err) {
 	console.log("Connected!");
 });
 
+ function storeIncomingData(dataArray,labelArray){
+    /*var labelArray = ["current", "voltage", "power factor",
+            "apparent power", "real power", "reactive power", "error"
+          ];*/
+    
+    
+    var databaseName = "timeEntryuserA1";//+data.user;
+		var sql = "INSERT INTO "+databaseName+ " (current, voltage, Pfactor, apparentP, realP, reactiveP) VALUES ("+dataArray[0]+", "+dataArray[1]+", "+dataArray[2]+", "+dataArray[3]+", "+dataArray[4]+", "+dataArray[5]+")";
+		con.query(sql, function (err, result) {
+			 if (err) throw err;
+			io.sockets.emit("changeLogged",{user:data.user});
+		});
+ }
+ 
  
  //global vars
  var devices=[];
@@ -136,7 +153,7 @@ con.connect(function(err) {
 	socket.on('logEnergy', function(data) {
 		
 		var databaseName = "timeEntry"+data.user;
-		var sql = "INSERT INTO "+databaseName+ " (current,voltage,power) VALUES ("+data.current+", "+data.voltage+", "+data.watts+")";
+		var sql = "INSERT INTO "+databaseName+ " (current,voltage,realP) VALUES ("+data.current+", "+data.voltage+", "+data.watts+")";
 		con.query(sql, function (err, result) {
 			 if (err) throw err;
 			io.sockets.emit("changeLogged",{user:data.user});
@@ -147,7 +164,7 @@ con.connect(function(err) {
 	socket.on('createDevice', function(data) {
 		//check for repeats
 		var databaseName = "devices";
-		var sql = "INSERT INTO "+databaseName+ " ( current, voltage, power, text1) VALUES ("+data.current+", "+data.voltage+", "+data.watts+", '"+data.deviceName+"')";
+		var sql = "INSERT INTO "+databaseName+ " ( current, voltage, realP, text1) VALUES ("+data.current+", "+data.voltage+", "+data.watts+", '"+data.deviceName+"')";
 		con.query(sql, function (err, result) {
 			 if (err) throw err;
 			io.sockets.emit("deviceCreated",{user:data.user,deviceName:data.deviceName});
@@ -157,29 +174,24 @@ con.connect(function(err) {
 	//pulling devices for use on client side
 	socket.on('pullDevices', function(data) {
 		//pulls all devices from database and adds to global scope array
-		fullDeviceUpdate();
+		readInDevices();
 		
 	});
-	
-	//repetavtive function call that i probably don't need
-	function fullDeviceUpdate(){
-		readInDevices();
-	}
+
 	//pulling devices from Database that have previously been recorded
 	function readInDevices(){
 		con.query("SELECT * FROM devices", function (err, result, fields) {
 			if (err) throw err;
 			var tempDevices = [];
 			for(var i=0; i<result.length;i++){
-				var device = {deviceName: result[i].text1, current: result[i].current, voltage: result[i].voltage, power: result[i].power};
+				var device = {deviceName: result[i].text1, current: result[i].current, voltage: result[i].voltage, power: result[i].realP};
 				tempDevices.push(device);
 			}
 			devices = tempDevices;
 			
 		});
 		
-		//pulling all changeevents
-		
+		//pulling all change events
 		var databaseName = "timeEntryuserA1";
 		var sql = "SELECT * FROM "+databaseName;
 		con.query(sql, function (err, result) {
