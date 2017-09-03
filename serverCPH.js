@@ -12,13 +12,6 @@ var postHTML =
   '<ul class="dataList"> </ul>' +
   '</body></html>';
 
-/*var cheerio = require('cheerio'),
-  $ = cheerio.load('<h3 class = "title">Hello world</h3>');
-
-$('h3.title').text('Hello there!');
-$('h3').addClass('welcome');
-
-$.html();*/
 
 var Particle = require('particle-api-js');
 var particle = new Particle();
@@ -116,7 +109,7 @@ con.connect(function(err) {
 		var sql = "INSERT INTO "+databaseName+ " (current, voltage, Pfactor, apparentP, realP, reactiveP) VALUES ("+dataArray[0]+", "+dataArray[1]+", "+dataArray[2]+", "+dataArray[3]+", "+dataArray[4]+", "+dataArray[5]+")";
 		con.query(sql, function (err, result) {
 			 if (err) throw err;
-			io.sockets.emit("changeLogged",{user:data.user});
+			io.sockets.emit("changeLogged",{user:"autoData"});
 		});
  }
  
@@ -124,6 +117,7 @@ con.connect(function(err) {
  //global vars
  var devices=[];
  var successDevices=[];
+ var firstLoad = true;
  
  
  var io = socketio.listen(app);
@@ -174,12 +168,12 @@ con.connect(function(err) {
 	//pulling devices for use on client side
 	socket.on('pullDevices', function(data) {
 		//pulls all devices from database and adds to global scope array
-		readInDevices();
+		readInDevices(data.learningModeOn);
 		
 	});
 
 	//pulling devices from Database that have previously been recorded
-	function readInDevices(){
+	function readInDevices(learningMode){
 		con.query("SELECT * FROM devices", function (err, result, fields) {
 			if (err) throw err;
 			var tempDevices = [];
@@ -191,25 +185,58 @@ con.connect(function(err) {
 			
 		});
 		
-		//pulling all change events
+    if(firstLoad){
+      firstLoad = false;
+      fullReadIN();
+    }
+    else{
+      incrementalCompare(learningMode);
+    }
+	}
+  
+  function incrementalCompare(learningMode){
+     //pulling all change events
 		var databaseName = "timeEntryuserA1";
 		var sql = "SELECT * FROM "+databaseName;
 		con.query(sql, function (err, result) {
 			if (err) throw err;
 			 
-			var tempDevices = [];
-			for(var i=0; i<result.length;i++){
+       
+       
+       
+       
+			compareLoadsDevices(result[0].current,result[0].voltage,result[0].power);
+      
+      for(var i=1; i<result.length;i++){
 				
-				compareLoadsDevices(result[i].current,result[i].voltage,result[i].power);
+				compareLoadsDevices((result[i].current-result[i-1].current),(result[i].realP-result[i-1].realP),(result[i].reactiveP-result[i-1].reactiveP));
 				
-				//var device = {deviceName: result[i].deviceName, current: result[i].current, voltage: result[i].voltage, power: result[i].power};
-				//console.log("device: " + device);
-				//tempDevices.push(device);
 			}
 			deviceInfoPush();
 			
 		});
-	}
+  }
+  
+  
+  function fullReadIN(){
+      //pulling all change events
+		var databaseName = "timeEntryuserA1";
+		var sql = "SELECT * FROM "+databaseName;
+		con.query(sql, function (err, result) {
+			if (err) throw err;
+			 
+			compareLoadsDevices(result[0].current,result[0].voltage,result[0].power);
+      
+      for(var i=1; i<result.length;i++){
+				
+				compareLoadsDevices((result[i].current-result[i-1].current),(result[i].realP-result[i-1].realP),(result[i].reactiveP-result[i-1].reactiveP));
+				
+			}
+			deviceInfoPush();
+			
+		});
+  }
+  
 	
 	//comparing loads to eachother so as to identified loads used in circuit
 	function compareLoadsDevices(current, voltage, power){
@@ -236,6 +263,30 @@ con.connect(function(err) {
 				}
 			}
 		}
+    
+    for(var i =0; i<successDevices.length;i++){
+      negCurrent = (successDevices[i].current*-1);
+      negVoltage = (successDevices[i].voltage *-1);
+      negPower = (successDevices[i].power *-1);
+      
+      var ncurrentSuccess = false;
+      var nvoltageSuccess = false;
+      var npowerSuccess = false;
+      
+      
+      if((negCurrent > (current *0.95))&& (negCurrent< current*1.05 )){
+				ncurrentSuccess = true;
+				if((negVoltage > (voltage *0.95))&& (negVoltage<  voltage*1.05) ){
+					nvoltageSuccess = true;
+					if((negPower > (power *0.95))&& (negPower< power*1.05) ){
+						npowerSuccess = true;
+						successDevices.splice(i,1);
+				
+					}
+				}
+			}
+    }
+    
 	}
 	
 	//push device info to client side for display

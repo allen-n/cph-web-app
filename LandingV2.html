@@ -222,12 +222,7 @@
        socketio.on("deviceCreated",function(data) {
          if(user == data.user){
             alert("device "+data.deviceName+" has been created");
-            var learningModeOn = false;
-            if(document.getElementsById("learningOn").checked){
-               learningModeOn = true;
-            }
-            socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
-            
+            socketio.emit("pullDevices", {user:user});
          }
       });
        //creating updated list of known devices 
