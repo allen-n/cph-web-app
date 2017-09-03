@@ -56,16 +56,16 @@
                <input type="radio" id="r4" name="display" value="Month"> Month<br>
                <input type="radio" id="r5" name="display" value="Year"> Year<br>
             
-            <div>
+            <div id="currentChart">
                <p>Current</p>  
                <canvas id="current" width="500" height="500"></canvas>
             </div>
             
-            <div>
+            <div id="voltageChart">
                <p>Voltage</p>
                <canvas id="voltage" width="500" height="500"></canvas>
             </div>
-            <div>
+            <div id="powerChart">
                <p>Power</p>
                <canvas id="power" width="500" height="500"></canvas>
             </div>
@@ -89,6 +89,8 @@
          document.getElementById("Teaching").style.display = "none";
       }
          
+      
+      //global vars
       var user =null;
        var socketio = io.connect();
       
@@ -134,12 +136,15 @@
       
       //call used to begin creation of device 
       function createDevice(number){
+         if(number ==1){
+            alert("number is 1!");
+         }
          
             var deviceName = document.getElementById("deviceName").value;
             
             socketio.emit("createDevice", {user:user,deviceName:deviceName});
-         }
       }
+      
       
       //updating screen in response to successful login
       socketio.on("loginResult",function(data) {
@@ -174,7 +179,11 @@
       socketio.on("changeLogged",function(data) {
             alert("change logged");
             updateDisplay();
-            socketio.emit("pullDevices", {user:user});
+            var learningModeOn = false;
+            if(document.getElementById("learningOn").checked){
+               learningModeOn = true;
+            }
+            socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
          
       });
       //response to device being successfully created
@@ -218,7 +227,7 @@
 
       //ALL BELOW IS GRAPH BUILDER
       
-      //global vars
+      //global graphing vars
       var chart1Data = [];
       var chart1Datax =[];
       var chart1Datay =[];

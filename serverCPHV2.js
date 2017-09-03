@@ -53,7 +53,7 @@ http.createServer(function(req, res) {
 			req.on('data', function(chunk) {
 			  body += chunk;
 			});
-			req.on('end', function() {
+	req.on('end', function() {
 			  var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
 			  if (patt.test(body)) {
           // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
@@ -77,8 +77,8 @@ http.createServer(function(req, res) {
 			  res.end(postHTML);
       
 			  // $(body).insertBefore(".dataList") //FIXME
-			});
-		}).listen(3456);
+	});
+}).listen(3456);
  
 //create SQL database connection
 var con = mysql.createConnection({
@@ -113,7 +113,7 @@ con.connect(function(err) {
 			 if (err) throw err;
 			io.sockets.emit("changeLogged",{user:"autoData"});
 		});
- }
+     }
     
     
     
@@ -330,7 +330,7 @@ con.connect(function(err) {
 				day = "0"+day;
 			}
 				sql ="SELECT * FROM "+ databaseName;
-			//}
+			
 			
 		con.query(sql, function (err, result, fields) {
 			if (err) throw err;
