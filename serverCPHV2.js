@@ -3,11 +3,6 @@ var http = require('http');
 var postHTML =
   '<html><head><title>CyberPowered-Home-Prototype</title></head>' +
   '<body>' +
-  '<h1>Setting Relay 1</h1>' +
-  '<form method="post">' +
-  '<input type="radio" name="setRelay1" value="on"> Circuit On<br>' +
-  '<input type="radio" name="setRelay1" value="off"> Circuit Off<br>' +
-  '</form>' +
   '<h2> Incoming Data: </h2>' +
   '<ul class="dataList"> </ul>' +
   '</body></html>';
@@ -80,8 +75,6 @@ http.createServer(function(req, res) {
 			  console.log('Original: ' + body);
 			  res.writeHead(200);
 			  res.end(postHTML);
-		  
-        
       
 			  // $(body).insertBefore(".dataList") //FIXME
 			});
@@ -99,30 +92,32 @@ con.connect(function(err) {
 	console.log("Connected!");
 });
 
- function storeIncomingData(dataArray,labelArray){
-    /*var labelArray = ["current", "voltage", "power factor",
-            "apparent power", "real power", "reactive power", "error"
-          ];*/
-    
-    
-    var databaseName = "timeEntryuserA1";//+data.user;
-		var sql = "INSERT INTO "+databaseName+ " (current, voltage, Pfactor, apparentP, realP, reactiveP) VALUES ("+dataArray[0]+", "+dataArray[1]+", "+dataArray[2]+", "+dataArray[3]+", "+dataArray[4]+", "+dataArray[5]+")";
-		con.query(sql, function (err, result) {
-			 if (err) throw err;
-			io.sockets.emit("changeLogged",{user:"autoData"});
-		});
- }
+
  
  
  //global vars
  var devices=[];
  var successDevices=[];
  var firstLoad = true;
+ var mostRecent;
  
  
  var io = socketio.listen(app);
  io.sockets.on("connection", function(socket){
 	
+     function storeIncomingData(dataArray,labelArray){
+        
+        var databaseName = "timeEntryuserA1";//+data.user;
+		var sql = "INSERT INTO "+databaseName+ " (current, voltage, Pfactor, apparentP, realP, reactiveP) VALUES ("+dataArray[0]+", "+dataArray[1]+", "+dataArray[2]+", "+dataArray[3]+", "+dataArray[4]+", "+dataArray[5]+")";
+		con.query(sql, function (err, result) {
+			 if (err) throw err;
+			io.sockets.emit("changeLogged",{user:"autoData"});
+		});
+ }
+    
+    
+    
+    
 	//check if registered user
 	socket.on('login_attempt', function(data) {
 			
@@ -156,10 +151,10 @@ con.connect(function(err) {
 	
 	//response to creating device
 	socket.on('createDevice', function(data) {
-		createDevice(data.current,data.voltage,data.watts,data.deviceName,data.user);
+		createDevice(data.deviceName,data.user);
 	});
   
-  function createDevice(current,voltage,watts,deviceName,user){
+  function createDevice(deviceName,user){
 		var databaseName = "devices";
 		var sql = "INSERT INTO "+databaseName+ " ( current, voltage, realP, text1) VALUES ("+current+", "+voltage+", "+watts+", '"+deviceName+"')";
 		con.query(sql, function (err, result) {
@@ -209,7 +204,7 @@ con.connect(function(err) {
        var obVoltage = result[result.length-1].voltage - result[result.length-2].voltage;
        var obPower = result[result.length-1].realP - result[result.length-2].realP;
 
-       var mostRecent = {current:obCurrent, voltage:obVoltage, power:obPower};
+       mostRecent = {current:obCurrent, voltage:obVoltage, power:obPower};
        
 			 var returned = compareLoadsDevices(mostRecent.current,mostRecent.voltage,mostRecent.power);
        

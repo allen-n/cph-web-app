@@ -24,19 +24,8 @@
             <button onclick="login()">Login</button>
          </div>      
          <div onload="init();" id="Circuit_Controls">
-            <p onload="init();">
-               Circuit 1, enter change in total load (load characteristic of device, use negative numbers for removed device: <br>
-               Watts: <input type="text" id="watts1"/>
-               Current: <input type="text" id="current1"/>
-               Voltage: <input type="text" id="voltage1"/>
-               <button onclick="logEnergy('1');">Log Energy Change</button>
-            </p>
             <p>
-               Enter New Device Characteristics (circuit 2) : <br>
                Device Name: <input type="text" id="deviceName"/>
-               Watts: <input type="text" id="watts2"/>
-               Current: <input type="text" id="current2"/>
-               Voltage: <input type="text" id="voltage2"/>
                <button onclick="createDevice('2');">Create Device Profile</button>
                
             </p>
@@ -97,6 +86,7 @@
          document.getElementById("Circuit_Controls").style.display = "none";
          document.getElementById("r2").style.display = "none";
          document.getElementById("Control").style.display = "none";
+         document.getElementById("Teaching").style.display = "none";
       }
          
       var user =null;
@@ -116,24 +106,6 @@
          }
       }
       
-      //record a sumbitted change in usage
-      function logEnergy(number){
-         if(user === null){
-            alert("Must be logged in to procceed");
-         }
-         else{
-            var wattString = "watts" + number;
-            var watts = document.getElementById(wattString).value;
-            
-            var currentString = "current" + number;
-            var current = document.getElementById(currentString).value;
-            
-            var voltageString = "voltage" + number;
-            var voltage = document.getElementById(voltageString).value;
-            
-            socketio.emit("logEnergy", {user:user, watts:watts, current:current,voltage:voltage});
-         }
-      }
       
       //update graphs
       function updateDisplay(){
@@ -162,22 +134,10 @@
       
       //call used to begin creation of device 
       function createDevice(number){
-         if(user === null){
-            alert("Must be logged in to procceed");
-         }
-         else{
+         
             var deviceName = document.getElementById("deviceName").value;
             
-            var wattString = "watts" + number;
-            var watts = document.getElementById(wattString).value;
-            
-            var currentString = "current" + number;
-            var current = document.getElementById(currentString).value;
-            
-            var voltageString = "voltage" + number;
-            var voltage = document.getElementById(voltageString).value;
-            
-            socketio.emit("createDevice", {user:user,deviceName:deviceName, watts:watts, current:current,voltage:voltage});
+            socketio.emit("createDevice", {user:user,deviceName:deviceName});
          }
       }
       
@@ -197,7 +157,7 @@
             document.getElementById("charts").style.display = "block";
             document.getElementById("devices").style.display = "block";
             document.getElementById("successDevices").style.display = "block";
-            document.getElementById("Circuit_Controls").style.display = "block";
+            //document.getElementById("Circuit_Controls").style.display = "block";
             document.getElementById("login").style.display = "none";
             document.getElementById("Control").style.display = "block";
             
@@ -219,7 +179,6 @@
       });
       //response to device being successfully created
        socketio.on("deviceCreated",function(data) {
-         if(user == data.user){
             alert("device "+data.deviceName+" has been created");
             var learningModeOn = false;
             if(document.getElementById("learningOn").checked){
@@ -227,7 +186,7 @@
             }
             socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
             
-         }
+         
       });
        //creating updated list of known devices 
        socketio.on("devicesUpdate",function(data) {
@@ -250,8 +209,10 @@
       });
        
       socketio.on("requestName",function(data) {
-         alert("Unrecognized device connected to system!");
+         document.getElementById("Circuit_Controls").style.display = "block";
+         alert("Unrecognized device connected to system! Please name it");
          alert(data.mostRecent);
+         
       });
        
 
