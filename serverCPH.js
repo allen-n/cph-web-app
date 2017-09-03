@@ -156,24 +156,35 @@ con.connect(function(err) {
 	
 	//response to creating device
 	socket.on('createDevice', function(data) {
-		//check for repeats
+		createDevice(data.current,data.voltage,data.watts,data.deviceName,data.user);
+	});
+  
+  function createDevice(current,voltage,watts,deviceName,user){
 		var databaseName = "devices";
-		var sql = "INSERT INTO "+databaseName+ " ( current, voltage, realP, text1) VALUES ("+data.current+", "+data.voltage+", "+data.watts+", '"+data.deviceName+"')";
+		var sql = "INSERT INTO "+databaseName+ " ( current, voltage, realP, text1) VALUES ("+current+", "+voltage+", "+watts+", '"+deviceName+"')";
 		con.query(sql, function (err, result) {
 			 if (err) throw err;
-			io.sockets.emit("deviceCreated",{user:data.user,deviceName:data.deviceName});
+			io.sockets.emit("deviceCreated",{user:user,deviceName: deviceName});
 		});
-	});
+    
+  }
 	
 	//pulling devices for use on client side
 	socket.on('pullDevices', function(data) {
 		//pulls all devices from database and adds to global scope array
-		readInDevices(data.learningModeOn);
+    
+    if(firstLoad){
+      firstLoad = false;
+      readInDevices();
+    }
+    else{
+      incrementalCompare(data.learningModeOn);
+    }
 		
 	});
 
 	//pulling devices from Database that have previously been recorded
-	function readInDevices(learningMode){
+	function readInDevices(){
 		con.query("SELECT * FROM devices", function (err, result, fields) {
 			if (err) throw err;
 			var tempDevices = [];
@@ -184,14 +195,7 @@ con.connect(function(err) {
 			devices = tempDevices;
 			
 		});
-		
-    if(firstLoad){
-      firstLoad = false;
       fullReadIN();
-    }
-    else{
-      incrementalCompare(learningMode);
-    }
 	}
   
   function incrementalCompare(learningMode){
@@ -201,17 +205,18 @@ con.connect(function(err) {
 		con.query(sql, function (err, result) {
 			if (err) throw err;
 			 
+       var obCurrent = result[result.length-1].current - result[result.length-2].current;
+       var obVoltage = result[result.length-1].voltage - result[result.length-2].voltage;
+       var obPower = result[result.length-1].realP - result[result.length-2].realP;
+
+       var mostRecent = {current:obCurrent, voltage:obVoltage, power:obPower};
        
+			 var returned = compareLoadsDevices(mostRecent.current,mostRecent.voltage,mostRecent.power);
        
+       if((!returned) && learningMode){
+          io.sockets.emit("requestName",{requestName:"requestName", mostRecent: mostRecent});
+       }
        
-       
-			compareLoadsDevices(result[0].current,result[0].voltage,result[0].power);
-      
-      for(var i=1; i<result.length;i++){
-				
-				compareLoadsDevices((result[i].current-result[i-1].current),(result[i].realP-result[i-1].realP),(result[i].reactiveP-result[i-1].reactiveP));
-				
-			}
 			deviceInfoPush();
 			
 		});
@@ -225,7 +230,7 @@ con.connect(function(err) {
 		con.query(sql, function (err, result) {
 			if (err) throw err;
 			 
-			compareLoadsDevices(result[0].current,result[0].voltage,result[0].power);
+			compareLoadsDevices(result[0].current,result[0].voltage,result[0].realP);
       
       for(var i=1; i<result.length;i++){
 				
@@ -258,7 +263,7 @@ con.connect(function(err) {
 						count ++;
 						device = {deviceName: devices[i].deviceName, current: devices[i].current, voltage: devices[i].voltage, power: devices[i].power, count: count};
 						successDevices.push(device);
-				
+            return true;
 					}
 				}
 			}
@@ -281,11 +286,13 @@ con.connect(function(err) {
 					if((negPower > (power *0.95))&& (negPower< power*1.05) ){
 						npowerSuccess = true;
 						successDevices.splice(i,1);
+            return true;
 				
 					}
 				}
 			}
     }
+    return false;
     
 	}
 	

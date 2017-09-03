@@ -50,7 +50,7 @@
             </form>
          </div>
          <div id="Teaching">
-            Setting Relay 1
+            Learning Mode On?
             <form method="post" name="setLearning">
                <input type="radio" id="learningOn" name="setRelay1" value="on"> Teaching On<br>
                <input type="radio" id = "learningOff" name="setRelay1" value="off"> Teaching Off<br>
@@ -212,17 +212,21 @@
       
        //response to success full logged change
       socketio.on("changeLogged",function(data) {
-         if(user == data.user){
             alert("change logged");
             updateDisplay();
             socketio.emit("pullDevices", {user:user});
-         }
+         
       });
       //response to device being successfully created
        socketio.on("deviceCreated",function(data) {
          if(user == data.user){
             alert("device "+data.deviceName+" has been created");
-            socketio.emit("pullDevices", {user:user});
+            var learningModeOn = false;
+            if(document.getElementById("learningOn").checked){
+               learningModeOn = true;
+            }
+            socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
+            
          }
       });
        //creating updated list of known devices 
@@ -243,6 +247,11 @@
          }
          document.getElementById("successDevices").appendChild(document.createElement("br"));
          document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage+ " Power: " + data.power));
+      });
+       
+      socketio.on("requestName",function(data) {
+         alert("Unrecognized device connected to system!");
+         alert(data.mostRecent);
       });
        
 
