@@ -66,18 +66,13 @@
                <input type="radio" id="r4" name="display" value="Month"> Month<br>
                <input type="radio" id="r5" name="display" value="Year"> Year<br>
             
-            <div id="currentChart">
-               <p>Current</p>  
-               <canvas id="current" width="500" height="500"></canvas>
-            </div>
-            
-            <div id="voltageChart">
-               <p>Voltage</p>
-               <canvas id="voltage" width="500" height="500"></canvas>
-            </div>
+         
             <div id="powerChart">
                <p>Power</p>
                <canvas id="power" width="500" height="500"></canvas>
+            </div>
+            <div id="harmonics">
+               
             </div>
          </div>
          
@@ -85,7 +80,7 @@
      
       <script src="/socket.io/socket.io.js"></script>
       <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
-     
+      <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
       <script type ="text/javascript">
          
       //page load call, to hide elements and make clear the need to log-in
@@ -238,202 +233,63 @@
       //ALL BELOW IS GRAPH BUILDER
       
       //global graphing vars
-      var chart1Data = [];
       var chart1Datax =[];
       var chart1Datay =[];
       
-      var chart2Data = [];
-      var chart2Datax =[];
-      var chart2Datay =[];
-      
-      var chart3Data = [];
-      var chart3Datax =[];
-      var chart3Datay =[];
-      
-      
-      
+      var chartHDataX =[];
+      var chartHDataY = [];
+          
       //update result return, prepare for graph building
       socketio.on("updateResult",function(data) {
          
-         if(data.stage === "first"){
-            chart1Data = [];
-            chart1Datax =[];
-            chart1Datay =[];
-            
-            chart2Data = [];
-            chart2Datax =[];
-            chart2Datay =[];
-            
-            chart3Data = [];
-            chart3Datax =[];
-            chart3Datay =[];
+         chart1Datax.push(data.x);
+         chart1Datay.push(data.y);
+         
+         chartHDataX.push(data.xH);
+         chartHDataY.push(data.yH);
+         
+         if(data.final == 1){
+            chartMaker(chart1DataX, chart1DataY, "powerChart");
+            chartMaker(chartHDataX, chartHDataY, "harmonics");
          }
-         chart1Datax.push(data.x1);
-         chart1Datay.push(data.y1);
          
-         chart2Datax.push(data.x2);
-         chart2Datay.push(data.y2);
-         
-         chart3Datax.push(data.x3);
-         chart3Datay.push(data.y3);
-         
-         if(data.stage === "final"){
-            chart1Data.push(chart1Datax);
-            chart1Data.push(chart1Datay);
-            
-            chart2Data.push(chart2Datax);
-            chart2Data.push(chart2Datay);
-            
-            chart3Data.push(chart3Datax);
-            chart3Data.push(chart3Datay);
-            
-            dataPlacement("current",chart1Data,"Current",data.dimension);
-            dataPlacement("voltage",chart2Data,"Voltage",data.dimension);
-            dataPlacement("power",chart3Data,"Watts",data.dimension);
-         }
          
       });
       
-      
-    //below is Easle.JS work to create charts  
-      function dataPlacement(name,chartData, Yaxis, Xaxis){
-         
-         //data placement
-         var maxX = maxValue(chartData,0);
-         var maxY = maxValue(chartData,1);
-         var bufferPercent = 0.1;
-         
-         var chartWidth = document.getElementById(name).width;
-         var chartHeight = document.getElementById(name).height;
-         
-         var adjustedWidth = chartWidth * (1-(2*bufferPercent));
-         var adjustedHeight = chartHeight * (1-(2*bufferPercent));
-         
-         
-         var stageChart1 = new createjs.Stage(name);
-         
-         //add all data points to chart
-         for(var i =0;i<chartData[0].length;i++){
-            var circle = new createjs.Shape();
-            circle.graphics.beginFill("red").drawCircle(0, 0, 10);
+      function chartMaker(chartDataX, chartDataY, elementID){
+         //below is Easle.JS work to create charts  
+        var stacksDiv = document.getElementById(elementID);
+        var traces = [
+            {x: chartDataX, y: chartDataY},
             
-            var x = (chartData[0][i] / maxX)*adjustedWidth;
-            var y = (chartData[1][i] / maxY)*adjustedHeight;
-            y= chartHeight-y;
-            
-            x=x+(chartWidth * bufferPercent);
-            y=y-(chartHeight * bufferPercent);
-            
-            circle.x = x;
-            circle.y = y;
-            stageChart1.addChild(circle);
-         }
-         
-         //add axis to chart
-         var oX = chartWidth * bufferPercent;
-         var oY = chartHeight * (1-bufferPercent);
-         
-         var fX = chartWidth * (1-bufferPercent);
-         var fY = chartHeight* bufferPercent;
-         
-         var xAxis = new createjs.Shape();
-         xAxis.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
-         xAxis.graphics.moveTo(oX,oY);
-         xAxis.graphics.lineTo(fX,oY);
-         stageChart1.addChild(xAxis);
-         
-         var yAxis = new createjs.Shape();
-         yAxis.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
-         yAxis.graphics.moveTo(oX,oY);
-         yAxis.graphics.lineTo(oX,fY);
-         stageChart1.addChild(yAxis);
-         
-         var tickPositionArr = tickPositions(oX,oY,fX,fY,4 );
-         
-         //labeling axis
-         for(i=0;i<tickPositionArr[0].length;i++){
-            
-            //x-axis
-            var xPos = tickPositionArr[0][i];
-            var xTick = new createjs.Shape();
-            xTick.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
-            xTick.graphics.moveTo(xPos,oY);
-            xTick.graphics.lineTo(xPos,oY+10);
-            stageChart1.addChild(xTick);
-            
-            var positionXLabel = ((xPos-oX) / adjustedWidth) * maxX;
-            var positionInt = Math.round(positionXLabel);
-            var textX = new createjs.Text(positionInt, "20px Arial", "#ff7700");
-            textX.x = xPos + 3;
-            textX.y=oY+18;
-            textX.textBaseline = "alphabetic";
-            stageChart1.addChild(textX);
-            
-            //y-axis
-            var yPos = tickPositionArr[0][i];
-            var yTick = new createjs.Shape();
-            yTick.graphics.setStrokeStyle(1).beginStroke("rgba(0,0,0,1)");
-            yTick.graphics.moveTo(oX,yPos);
-            yTick.graphics.lineTo(oX-10, yPos);
-            stageChart1.addChild(yTick);
-            
-            var positionYLabel = (-1*(yPos-oY) / adjustedHeight) * maxY;
-            var textY = new createjs.Text(positionYLabel, "20px Arial", "#ff7700");
-            textY.y=yPos;
-            textY.x=oX-50;
-            textY.textBaseline = "alphabetic";
-            stageChart1.addChild(textY); 
-         }
-         
-         var textYaxis = new createjs.Text(Yaxis, "20px Arial", "#ff7700");
-         textYaxis.y=fY-25;
-         textYaxis.x=oX-50;
-         textYaxis.textBaseline = "alphabetic";
-         stageChart1.addChild(textYaxis);
-         
-         var textXaxis = new createjs.Text(Xaxis, "20px Arial", "#ff7700");
-         textXaxis.x=((fX+oX)/2) - 25;
-         textXaxis.y=oY+35;
-         textXaxis.textBaseline = "alphabetic";
-         stageChart1.addChild(textXaxis);
-         
-         
-         stageChart1.update();
+        ];
+        var layout = {
+            autosize: false,
+            width: 500,
+            height: 500,
+            margin: {
+              l: 50,
+              r: 50,
+              b: 100,
+              t: 100,
+              pad: 4
+            },
+            paper_bgcolor: '#7f7f7f',
+            plot_bgcolor: '#c7c7c7'
+          
+          };
+        
+        Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
       }
-      
-      //calculate where the ticks should be
-      function tickPositions(oX,oY,fX,fY,numDivs){
-         var divSizeX =(fX-oX)/numDivs;
-         var divSizeY = (fY-oY)/numDivs;
-         
-         var tickPositionsArr = [];
-         var xArr=[];
-         var yArr=[];
-         
-         for(var i=0;i<=numDivs;i++){
-            xArr.push(oX + divSizeX*i);
-            yArr.push(oY - divSizeY*i);
-         }
-         tickPositionsArr.push(xArr);
-         tickPositionsArr.push(yArr);
-         return tickPositionsArr;
-      }
-      
-      //find the max value of array
-      function maxValue(x, position){
-         var max =0;
-         for(var j=0;j<x[position].length;j++){
-            if(x[position][j]>max){
-               max = x[position][j];
+      function stackedArea(traces) {
+            for(var i=1; i<traces.length; i++) {
+                for(var j=0; j<(Math.min(traces[i]['y'].length, traces[i-1]['y'].length)); j++) {
+                    traces[i]['y'][j] += traces[i-1]['y'][j];
+                }
             }
-         }
-         return max;
-      }
+            return traces;
+        }
       
-      //rounding function taken from: http://www.jacklmoore.com/notes/rounding-in-javascript/
-      function round(value, decimals) {
-         return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
-      }
       </script>
    </body> 
 </html>
