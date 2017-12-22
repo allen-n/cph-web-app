@@ -2,8 +2,12 @@
 
 URL: http://ec2-54-187-114-1.us-west-2.compute.amazonaws.com:4567/LandingV2.html
 
-[running the node: "node serverCPHV2.html"
+running the node: "node serverCPHV2.html"
 
+Log-in info: 
+user_id | password   | userName | particle_user | particle_pass | text1 | dataTable_name  |
++---------+------------+----------+---------------+---------------+-------+-----------------+
+|       1 | passwordA1 | userA1   | NULL          | NULL          | NULL  | timeEntryuserA1 |
 
 CPH SQL Database creation
 
