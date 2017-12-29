@@ -4,14 +4,14 @@ URL: http://ec2-54-187-114-1.us-west-2.compute.amazonaws.com:4567/LandingV2.html
 
 running the node: "node serverCPHV2.html"
 
-Log-in info: 
+Log-in info:
 user_id | password   | userName | particle_user | particle_pass | text1 | dataTable_name  |
 +---------+------------+----------+---------------+---------------+-------+-----------------+
 |       1 | passwordA1 | userA1   | NULL          | NULL          | NULL  | timeEntryuserA1 |
 
 CPH SQL Database creation
 
-mysql -u root -p 
+mysql -u root -p
 
 create database CPHSQL
 
@@ -27,9 +27,9 @@ CREATE TABLE users(
 	particle_pass VARCHAR(150),
 	text1 VARCHAR(150),
 	dataTable_name VARCHAR(150) NOT NULL,
-	PRIMARY KEY (user_id)) 
+	PRIMARY KEY (user_id))
 
-INSERT INTO users (password, userName, dataTable_name) VALUES (passwordA1, userA1, timeEntryuserA1) // 
+INSERT INTO users (password, userName, dataTable_name) VALUES (passwordA1, userA1, timeEntryuserA1) //
 
 
 CREATE TABLE timeEntryuserA2(
@@ -41,6 +41,9 @@ CREATE TABLE timeEntryuserA2(
 	x1 FLOAT,
 	x2 FLOAT,
 	x3 FLOAT,
+	x4 FLOAT,
+	x5 FLOAT,
+	x6 FLOAT,
 	text1 VARCHAR(150),
 	text2 VARCHAR(150),
 	text3 VARCHAR(150),
@@ -53,5 +56,10 @@ create table devices(
 	voltage FLOAT,
 	power FLOAT,
 	x1 FLOAT,
+	x2 FLOAT,
+	x3 FLOAT,
+	x4 FLOAT,
+	x5 FLOAT,
+	x6 FLOAT,
 	text1 VARCHAR(150),
 	PRIMARY KEY (device_id))

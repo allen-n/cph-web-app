@@ -1,295 +1,312 @@
 <!DOCTYPE html>
-  
+
 <html>
-   
-   <head>
-       <!--I used http://createjs.com/getting-started-->
-      <style>div{
-         border: double;
-      }</style>
-     <title>CPH Monitoring Page</title>
-     <meta charset="UTF-8">
-     <!--<style>
+
+<head>
+  <!--I used http://createjs.com/getting-started-->
+  <style>
+    div {
+      border: double;
+    }
+  </style>
+  <title>CPH Monitoring Page</title>
+  <meta charset="UTF-8">
+  <!--<style>
       div{
          border-style: solid;
       }
      </style>-->
-   </head>
-   
-   <body onload="init();">
-      
-         <!-- HTML for Loging in, duh -->
-         <div id="login" onload="init();">Login: 
-            <input type="text" id="username"/>
-            <input type="password" id="password"/>
-            <button onclick="login()">Login</button>
-         </div>
-         
-         <!-- For manually putting in data for testing purposes -->
-         <div onload="init();" id="Circuit_Controls">
-            <p>
-               Device Name: <input type="text" id="deviceName"/>
-               <button onclick="createDevice('2');">Create Device Profile</button>
-               
-            </p>
-         </div>
-         
-         <!-- Controling the circuit on/off -->
-         <div id="Control">
-            Setting Relay 1
-            <form method="post" name = "setRelay">
-               <input type="radio" id = "relay1On" name="setRelay1" value="on"> Circuit On<br>
-               <input type="radio"  id = "relay1Off" name="setRelay1" value="off"> Circuit Off<br>
-            </form>
-         </div>
-         
-         <!-- Whether the system should prompt the user for name of unrecognized power signature -->
-         <div id="Teaching">
-            Learning Mode On?
-            <form method="post" name="setLearning">
-               <input type="radio" id="learningOn" name="setRelay1" value="on"> Teaching On<br>
-               <input type="radio" id = "learningOff" name="setRelay1" value="off"> Teaching Off<br>
-            </form>
-         </div>
-         
-         <!-- Listing of Devices that we are currently observing power from. -->
-         <div id="successDevices"></div>
-         
-         <!-- Listing of all names devices (for testing purposes) -->
-          <div id="devices"></div>
-          
-         
-         <div id = "charts">
-                <button onclick="updateDisplay();">Update Display</button><br>
-               <input type="radio" id="r2" name="display" value="Hour"> Hour<br>
-               <input type="radio" id="r3" name="display" value="Day" checked> Day<br>
-               <input type="radio" id="r4" name="display" value="Month"> Month<br>
-               <input type="radio" id="r5" name="display" value="Year"> Year<br>
-            
-         
-            <div id="powerChart">
-               <p>Power</p>
-               <canvas id="power" width="500" height="500"></canvas>
-            </div>
-            <div id="harmonics">
-               
-            </div>
-         </div>
-         
-         
-     
-      <script src="/socket.io/socket.io.js"></script>
-      <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
-      <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-      <script type ="text/javascript">
-         
-      //page load call, to hide elements and make clear the need to log-in
-      function init() {
-         document.getElementById("charts").style.display = "none";
-         document.getElementById("devices").style.display = "none";
-         document.getElementById("successDevices").style.display = "none";
-         document.getElementById("Circuit_Controls").style.display = "none";
-         document.getElementById("r2").style.display = "none";
-         document.getElementById("Control").style.display = "none";
-         document.getElementById("Teaching").style.display = "none";
-      }
-         
-      
-      //global vars
-      var user =null;
-       var socketio = io.connect();
-      
-       //function used to login a user
-      function login(){
-         var userTemp = document.getElementById("username").value;
-         var pass = document.getElementById("password").value;
-         if(userTemp === "")
-         {
-            alert("You must enter a username");
-         }
-         else{
-            user = userTemp;
-            socketio.emit("login_attempt",{userName:user,password:pass});
-         }
-      }
-      
-      
-      //update graphs
-      function updateDisplay(){
-         
-         var dimension = "";
-         if (document.getElementById('r2').checked) {
-            dimension = document.getElementById('r2').value;
-         }
-         if (document.getElementById('r3').checked) {
-            dimension = document.getElementById('r3').value;
-         }
-         if (document.getElementById('r4').checked) {
-            dimension = document.getElementById('r4').value;
-         }
-         if (document.getElementById('r5').checked) {
-            dimension = document.getElementById('r5').value;
-         }
-         if(dimension ===""){
-            alert("Please select a view size");
-         }
-         else{
-            socketio.emit("updateDisplay", {user:user,dimension:dimension});
-         }
-         
-      }
-      
-      //call used to begin creation of device 
-      function createDevice(number){
-         if(number ==1){
-            alert("number is 1!");
-         }
-         
-            var deviceName = document.getElementById("deviceName").value;
-            
-            socketio.emit("createDevice", {user:user,deviceName:deviceName});
-      }
-      
-      
-      //updating screen in response to successful login
-      socketio.on("loginResult",function(data) {
-          if(!data.successUser){
-            alert("Username not recognized");
-          }
-          else{
-            if(!data.successPass){
-               alert("Password incorrect");
-            }
-          }
-          if(data.successUser && data.successPass){
-            alert(data.user + " is logged-in");
-            user = data.user;
-            document.getElementById("charts").style.display = "block";
-            document.getElementById("devices").style.display = "block";
-            document.getElementById("successDevices").style.display = "block";
-            //document.getElementById("Circuit_Controls").style.display = "block";
-            document.getElementById("login").style.display = "none";
-            document.getElementById("Control").style.display = "block";
-            
-            document.getElementById("devices").innerHTML = "Identified devices: ";
-            document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
-            
-            updateDisplay();
-            socketio.emit("pullDevices", {user:user});
-            
-          }
-      });
-      
-       //response to success full logged change
-      socketio.on("changeLogged",function(data) {
-            alert("change logged");
-            updateDisplay();
-            var learningModeOn = false;
-            if(document.getElementById("learningOn").checked){
-               learningModeOn = true;
-            }
-            socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
-         
-      });
-      //response to device being successfully created
-       socketio.on("deviceCreated",function(data) {
-            alert("device "+data.deviceName+" has been created");
-            var learningModeOn = false;
-            if(document.getElementById("learningOn").checked){
-               learningModeOn = true;
-            }
-            socketio.emit("pullDevices", {user:user, learningModeOn:learningModeOn});
-            
-         
-      });
-       //creating updated list of known devices 
-       socketio.on("devicesUpdate",function(data) {
-         if(data.first === true){
-            document.getElementById("devices").innerHTML = "Identified devices: ";
-         }
-         document.getElementById("devices").appendChild(document.createElement("br"));
-         document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage+ " Power: " + data.power));
-         
-      });
-       
-       //creating updated list of "on devices"
-       socketio.on("successDevicesUpdate",function(data) {
-         alert("entered successdevicesUpdate");
-         if(data.first === true){
-            document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
-         }
-         document.getElementById("successDevices").appendChild(document.createElement("br"));
-         document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage+ " Power: " + data.power));
-      });
-       
-      socketio.on("requestName",function(data) {
-         document.getElementById("Circuit_Controls").style.display = "block";
-         alert("Unrecognized device connected to system! Please name it");
-         alert(data.mostRecent);
-         
-      });
-       
+</head>
 
-      //ALL BELOW IS GRAPH BUILDER
-      
-      //global graphing vars
-      var chart1Datax =[];
-      var chart1Datay =[];
-      
-      var chartHDataX =[];
-      var chartHDataY = [];
-          
-      //update result return, prepare for graph building
-      socketio.on("updateResult",function(data) {
-         
-         chart1Datax.push(data.x);
-         chart1Datay.push(data.y);
-         
-         chartHDataX.push(data.xH);
-         chartHDataY.push(data.yH);
-         
-         if(data.final == 1){
-            chartMaker(chart1DataX, chart1DataY, "powerChart");
-            chartMaker(chartHDataX, chartHDataY, "harmonics");
-         }
-         
-         
-      });
-      
-      function chartMaker(chartDataX, chartDataY, elementID){
-         //below is Easle.JS work to create charts  
-        var stacksDiv = document.getElementById(elementID);
-        var traces = [
-            {x: chartDataX, y: chartDataY},
-            
-        ];
-        var layout = {
-            autosize: false,
-            width: 500,
-            height: 500,
-            margin: {
-              l: 50,
-              r: 50,
-              b: 100,
-              t: 100,
-              pad: 4
-            },
-            paper_bgcolor: '#7f7f7f',
-            plot_bgcolor: '#c7c7c7'
-          
-          };
-        
-        Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
+<body onload="init();">
+
+  <!-- HTML for Loging in, duh -->
+  <div id="login" onload="init();">Login:
+    <input type="text" id="username" />
+    <input type="password" id="password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- For manually putting in data for testing purposes -->
+  <div onload="init();" id="Circuit_Controls">
+    <p>
+      Device Name: <input type="text" id="deviceName" />
+      <button onclick="createDevice('2');">Create Device Profile</button>
+
+    </p>
+  </div>
+
+  <!-- Controling the circuit on/off -->
+  <div id="Control">
+    Setting Relay 1
+    <form method="post" name="setRelay">
+      <input type="radio" id="relay1On" name="setRelay1" value="on"> Circuit On<br>
+      <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off<br>
+    </form>
+  </div>
+
+  <!-- Whether the system should prompt the user for name of unrecognized power signature -->
+  <div id="Teaching">
+    Learning Mode On?
+    <form method="post" name="setLearning">
+      <input type="radio" id="learningOn" name="setRelay1" value="on"> Teaching On<br>
+      <input type="radio" id="learningOff" name="setRelay1" value="off"> Teaching Off<br>
+    </form>
+  </div>
+
+  <!-- Listing of Devices that we are currently observing power from. -->
+  <div id="successDevices"></div>
+
+  <!-- Listing of all names devices (for testing purposes) -->
+  <div id="devices"></div>
+
+
+  <div id="charts">
+    <button onclick="updateDisplay();">Update Display</button><br>
+    <input type="radio" id="r2" name="display" value="Hour"> Hour<br>
+    <input type="radio" id="r3" name="display" value="Day" checked> Day<br>
+    <input type="radio" id="r4" name="display" value="Month"> Month<br>
+    <input type="radio" id="r5" name="display" value="Year"> Year<br>
+
+
+    <div id="powerChart">
+      <p>Power</p>
+      <canvas id="power" width="500" height="500"></canvas>
+    </div>
+    <div id="harmonics">
+
+    </div>
+  </div>
+
+
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script type="text/javascript">
+    //page load call, to hide elements and make clear the need to log-in
+    function init() {
+      document.getElementById("charts").style.display = "none";
+      document.getElementById("devices").style.display = "none";
+      document.getElementById("successDevices").style.display = "none";
+      document.getElementById("Circuit_Controls").style.display = "none";
+      document.getElementById("r2").style.display = "none";
+      document.getElementById("Control").style.display = "none";
+      document.getElementById("Teaching").style.display = "none";
+    }
+
+
+    //global vars
+    var user = null;
+    var socketio = io.connect();
+
+    //function used to login a user
+    function login() {
+      var userTemp = document.getElementById("username").value;
+      var pass = document.getElementById("password").value;
+      if (userTemp === "") {
+        alert("You must enter a username");
+      } else {
+        user = userTemp;
+        socketio.emit("login_attempt", {
+          userName: user,
+          password: pass
+        });
       }
-      function stackedArea(traces) {
-            for(var i=1; i<traces.length; i++) {
-                for(var j=0; j<(Math.min(traces[i]['y'].length, traces[i-1]['y'].length)); j++) {
-                    traces[i]['y'][j] += traces[i-1]['y'][j];
-                }
-            }
-            return traces;
+    }
+
+
+    //update graphs
+    function updateDisplay() {
+
+      var dimension = "";
+      if (document.getElementById('r2').checked) {
+        dimension = document.getElementById('r2').value;
+      }
+      if (document.getElementById('r3').checked) {
+        dimension = document.getElementById('r3').value;
+      }
+      if (document.getElementById('r4').checked) {
+        dimension = document.getElementById('r4').value;
+      }
+      if (document.getElementById('r5').checked) {
+        dimension = document.getElementById('r5').value;
+      }
+      if (dimension === "") {
+        alert("Please select a view size");
+      } else {
+        socketio.emit("updateDisplay", {
+          user: user,
+          dimension: dimension
+        });
+      }
+
+    }
+
+    //call used to begin creation of device
+    function createDevice(number) {
+      if (number == 1) {
+        alert("number is 1!");
+      }
+
+      var deviceName = document.getElementById("deviceName").value;
+
+      socketio.emit("createDevice", {
+        user: user,
+        deviceName: deviceName
+      });
+    }
+
+
+    //updating screen in response to successful login
+    socketio.on("loginResult", function(data) {
+      if (!data.successUser) {
+        alert("Username not recognized");
+      } else {
+        if (!data.successPass) {
+          alert("Password incorrect");
         }
-      
-      </script>
-   </body> 
+      }
+      if (data.successUser && data.successPass) {
+        alert(data.user + " is logged-in");
+        user = data.user;
+        document.getElementById("charts").style.display = "block";
+        document.getElementById("devices").style.display = "block";
+        document.getElementById("successDevices").style.display = "block";
+        //document.getElementById("Circuit_Controls").style.display = "block";
+        document.getElementById("login").style.display = "none";
+        document.getElementById("Control").style.display = "block";
+
+        document.getElementById("devices").innerHTML = "Identified devices: ";
+        document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+
+        updateDisplay();
+        socketio.emit("pullDevices", {
+          user: user
+        });
+
+      }
+    });
+
+    //response to success full logged change
+    socketio.on("changeLogged", function(data) {
+      alert("change logged");
+      updateDisplay();
+      var learningModeOn = false;
+      if (document.getElementById("learningOn").checked) {
+        learningModeOn = true;
+      }
+      socketio.emit("pullDevices", {
+        user: user,
+        learningModeOn: learningModeOn
+      });
+
+    });
+    //response to device being successfully created
+    socketio.on("deviceCreated", function(data) {
+      alert("device " + data.deviceName + " has been created");
+      var learningModeOn = false;
+      if (document.getElementById("learningOn").checked) {
+        learningModeOn = true;
+      }
+      socketio.emit("pullDevices", {
+        user: user,
+        learningModeOn: learningModeOn
+      });
+
+
+    });
+    //creating updated list of known devices
+    socketio.on("devicesUpdate", function(data) {
+      if (data.first === true) {
+        document.getElementById("devices").innerHTML = "Identified devices: ";
+      }
+      document.getElementById("devices").appendChild(document.createElement("br"));
+      document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.power));
+
+    });
+
+    //creating updated list of "on devices"
+    socketio.on("successDevicesUpdate", function(data) {
+      alert("entered successdevicesUpdate");
+      if (data.first === true) {
+        document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+      }
+      document.getElementById("successDevices").appendChild(document.createElement("br"));
+      document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.power));
+    });
+
+    socketio.on("requestName", function(data) {
+      document.getElementById("Circuit_Controls").style.display = "block";
+      alert("Unrecognized device connected to system! Please name it");
+      alert(data.mostRecent);
+
+    });
+
+
+    //ALL BELOW IS GRAPH BUILDER
+
+    //global graphing vars
+    var chart1Datax = [];
+    var chart1Datay = [];
+
+    var chartHDataX = [];
+    var chartHDataY = [];
+
+    //update result return, prepare for graph building
+    socketio.on("updateResult", function(data) {
+
+      chart1Datax.push(data.x);
+      chart1Datay.push(data.y);
+
+      chartHDataX.push(data.xH);
+      chartHDataY.push(data.yH);
+
+      if (data.final == 1) {
+        chartMaker(chart1DataX, chart1DataY, "powerChart");
+        chartMaker(chartHDataX, chartHDataY, "harmonics");
+      }
+
+
+    });
+
+    function chartMaker(chartDataX, chartDataY, elementID) {
+      //below is Easle.JS work to create charts
+      var stacksDiv = document.getElementById(elementID);
+      var traces = [{
+          x: chartDataX,
+          y: chartDataY
+        },
+
+      ];
+      var layout = {
+        autosize: false,
+        width: 500,
+        height: 500,
+        margin: {
+          l: 50,
+          r: 50,
+          b: 100,
+          t: 100,
+          pad: 4
+        },
+        paper_bgcolor: '#7f7f7f',
+        plot_bgcolor: '#c7c7c7'
+
+      };
+
+      Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
+    }
+
+    function stackedArea(traces) {
+      for (var i = 1; i < traces.length; i++) {
+        for (var j = 0; j < (Math.min(traces[i]['y'].length, traces[i - 1]['y'].length)); j++) {
+          traces[i]['y'][j] += traces[i - 1]['y'][j];
+        }
+      }
+      return traces;
+    }
+  </script>
+</body>
+
 </html>
