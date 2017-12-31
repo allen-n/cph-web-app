@@ -222,7 +222,7 @@
         document.getElementById("devices").innerHTML = "Identified devices: ";
       }
       document.getElementById("devices").appendChild(document.createElement("br"));
-      document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.power));
+      document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
 
     });
 
@@ -233,7 +233,7 @@
         document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
       }
       document.getElementById("successDevices").appendChild(document.createElement("br"));
-      document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.power));
+      document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
     });
 
     socketio.on("requestName", function(data) {

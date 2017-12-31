@@ -21,7 +21,7 @@ particle.login({
   function(data) {
     token = data.body.access_token;
   },
-  function(err) {}
+  function(err) {console.log("particle connection error")}
 );
 
 // Require the packages we will use:
@@ -47,37 +47,6 @@ app.listen(4567);
 // app.listen(app.get('port'));
 
 
-http.createServer(function(req, res) {
-  var body = "";
-  req.on('data', function(chunk) {
-    body += chunk;
-  });
-  req.on('end', function() {
-    var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
-    if (patt.test(body)) {
-      // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
-      var dataArray = body.match(/[0-9]*[.][0-9]*/g);
-      var labelArray = ["current", "voltage", "power factor",
-        "apparent power", "real power", "reactive power", "error"
-      ];
-      for (i = 0; i < dataArray.length - 1; i++) {
-        // dataArray[i].replace(/[=]/g,"");
-        // dataArray[i].replace(/[C]/g,"");
-        console.log(labelArray[i] + '= ' + dataArray[i]);
-      }
-      var dateStamp = body.match(/[0-9]{4}[-][0-9]{2}[-][0-9]{2}/);
-      var timeStamp = body.match(/[0-9]{2}%3A[0-9]{2}%3A[0-9]{2}/);
-      var newTimeStamp = timeStamp[0].replace(/%3A/g, ":");
-      console.log(newTimeStamp + " " + dateStamp[0]);
-      storeIncomingData(dataArray, labelArray);
-    }
-    console.log('Original: ' + body);
-    res.writeHead(200);
-    res.end(postHTML);
-
-    // $(body).insertBefore(".dataList") //FIXME
-  });
-}).listen(3456);
 
 //create SQL database connection
 var con = mysql.createConnection({
@@ -92,7 +61,62 @@ con.connect(function(err) {
 });
 
 
+//recieving data from particle
+var particleApp = http.createServer(function(req, res) {
+  var body = "";
+  req.on('data', function(chunk) {
+    console.log("recieving data on 3456!")
+    body += chunk;
+  });
+  req.on('end', function() {
+    var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
+    if (patt.test(body)) {
+      // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
+      var dataArray = body.match(/[0-9]*[.][0-9]*/g);
+      var labelArray = ["current", "voltage", "power factor",
+        "apparent power", "real power", "reactive power","h1",
+        "h2","h3","h4","h5","h6","error"
+      ];
+      // for (i = 0; i < dataArray.length - 1; i++) {
+      //   // dataArray[i].replace(/[=]/g,"");
+      //   // dataArray[i].replace(/[C]/g,"");
+      //   console.log(labelArray[i] + '= ' + dataArray[i]);
+      // }
+      var dateStamp = body.match(/[0-9]{4}[-][0-9]{2}[-][0-9]{2}/);
+      var timeStamp = body.match(/[0-9]{2}%3A[0-9]{2}%3A[0-9]{2}/);
+      var newTimeStamp = timeStamp[0].replace(/%3A/g, ":");
+      // console.log(newTimeStamp + " " + dateStamp[0]);
+      storeIncomingData(dataArray, labelArray);
+    }
+    // console.log('Original: ' + body);
+    res.writeHead(200);
+    res.end(postHTML);
 
+    // $(body).insertBefore(".dataList") //FIXME
+  });
+});
+
+particleApp.listen(3456);
+
+function storeIncomingData(dataArray, labelArray) {
+  for (i = 0; i < dataArray.length - 1; i++) {
+    // dataArray[i].replace(/[=]/g,"");
+    // dataArray[i].replace(/[C]/g,"");
+    console.log(labelArray[i] + '= ' + dataArray[i]);
+  }
+  var databaseName = "timeEntryuserA1"; //+data.user;
+  var sql = "INSERT INTO " + databaseName +
+    " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
+    dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
+    ", " + dataArray[4] + ", " + dataArray[5] + ", " + dataArray[6] + ", " + dataArray[7] +
+    ", " + dataArray[8] + ", " + dataArray[9] + ", " + dataArray[10] + ", " + dataArray[11] +")";
+  con.query(sql, function(err, result) {
+    if (err) throw err;
+    io.sockets.emit("changeLogged", {
+      user: "autoData"
+    });
+  });
+}
 
 //global vars
 var devices = [];
@@ -100,21 +124,23 @@ var successDevices = [];
 var firstLoad = true;
 var mostRecent;
 
-
 var io = socketio.listen(app);
 io.sockets.on("connection", function(socket) {
 
-  function storeIncomingData(dataArray, labelArray) {
-
-    var databaseName = "timeEntryuserA1"; //+data.user;
-    var sql = "INSERT INTO " + databaseName + " (current, voltage, Pfactor, apparentP, realP, reactiveP) VALUES (" + dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] + ", " + dataArray[4] + ", " + dataArray[5] + ")";
-    con.query(sql, function(err, result) {
-      if (err) throw err;
-      io.sockets.emit("changeLogged", {
-        user: "autoData"
-      });
-    });
-  }
+//   function storeIncomingData(dataArray, labelArray) {
+//
+//   var databaseName = "timeEntryuserA1"; //+data.user;
+//   var sql = "INSERT INTO " + databaseName +
+//     " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
+//     dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
+//     ", " + dataArray[4] + ", " + dataArray[5] + ")";
+//   con.query(sql, function(err, result) {
+//     if (err) throw err;
+//     io.sockets.emit("changeLogged", {
+//       user: "autoData"
+//     });
+//   });
+// }
 
 
 
@@ -225,7 +251,7 @@ io.sockets.on("connection", function(socket) {
         power: obPower
       };
 
-      var returned = compareLoadsDevices(mostRecent.current, mostRecent.voltage, mostRecent.power);
+      var returned = compareLoadsDevices(mostRecent.current, mostRecent.voltage, mostRecent.realP);
 
       if ((!returned) && learningMode) {
         io.sockets.emit("requestName", {
@@ -421,19 +447,19 @@ io.sockets.on("connection", function(socket) {
 
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         console.log("timeStringF:" + timeStringF);
-        console.log("result[i].power:" + result[i].power);
+        console.log("result[i].power:" + result[i].realP);
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
-            y: result[i].power,
+            y: result[i].realP,
             final: 0
           });
         } else {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
-            y: result[i].power,
+            y: result[i].realP,
             final: 1
           });
         }
