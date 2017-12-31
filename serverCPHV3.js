@@ -402,7 +402,7 @@ io.sockets.on("connection", function(socket) {
 			 */
 
       //The abreviations here may not all be correct, they are guesses.
-      var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Nov", "Dec"];
+      var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
 
       for (var i = 0; i < result.length; i++) {
@@ -421,19 +421,19 @@ io.sockets.on("connection", function(socket) {
 
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         console.log("timeStringF:" + timeStringF);
-        console.log("result[i].current:" + result[i].realP);
+        console.log("result[i].power:" + result[i].power);
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
-            y: result[i].realP,
+            y: result[i].power,
             final: 0
           });
         } else {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
-            y: result[i].realP,
+            y: result[i].power,
             final: 1
           });
         }

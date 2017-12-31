@@ -247,8 +247,8 @@
     //ALL BELOW IS GRAPH BUILDER
 
     //global graphing vars
-    var chart1Datax = [];
-    var chart1Datay = [];
+    var chart1DataX = [];
+    var chart1DataY= [];
 
     var chartHDataX = [];
     var chartHDataY = [];
@@ -256,15 +256,16 @@
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
 
-      chart1Datax.push(data.x);
-      chart1Datay.push(data.y);
+      chart1DataX.push(data.x);
+      chart1DataY.push(data.y);
 
-      chartHDataX.push(data.xH);
-      chartHDataY.push(data.yH);
-
+      //FIXME: for making harmonics
+      // chartHDataX.push(data.xH);
+      // chartHDataY.push(data.yH);
       if (data.final == 1) {
         chartMaker(chart1DataX, chart1DataY, "powerChart");
-        chartMaker(chartHDataX, chartHDataY, "harmonics");
+        // FIXME: for making harmonics
+        // chartMaker(chartHDataX, chartHDataY, "harmonics");
       }
 
 
