@@ -21,7 +21,7 @@ particle.login({
   function(data) {
     token = data.body.access_token;
   },
-  function(err) {console.log("particle connection error")}
+  function(err) {console.log("particle connection error: ", err)}
 );
 
 // Require the packages we will use:
@@ -200,6 +200,27 @@ io.sockets.on("connection", function(socket) {
     });
 
   }
+  //controlling relay 1
+  socket.on('setRelay', function(data) {
+
+    var publishEventPr = particle.publishEvent({
+      name: data.name,
+      data: data.data,
+      auth: token
+    });
+
+    publishEventPr.then(
+      function(data) {
+        if (data.body.ok) {
+          console.log("Event setRelay1 published succesfully")
+        }
+      },
+      function(err) {
+        console.log("Failed to publish event setRelay1: " + err)
+      }
+    );
+
+  });
 
   //pulling devices for use on client side
   socket.on('pullDevices', function(data) {
@@ -409,7 +430,7 @@ io.sockets.on("connection", function(socket) {
     }
     sql = "SELECT * FROM " + databaseName;
 
-    //FIXME: error here, the result returned is undefined, need to dertermine what is causing that behabior
+
     con.query(sql, function(err, result, fields) {
       if (err) throw err;
       console.log(result[1]);
@@ -448,11 +469,15 @@ io.sockets.on("connection", function(socket) {
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         console.log("timeStringF:" + timeStringF);
         console.log("result[i].power:" + result[i].realP);
+        var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4,result[i].x5, result[i].x6];
+        var frequencies = [0,60,120,180,240,300];
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
             y: result[i].realP,
+            xH: frequencies,
+            yH: harmonics,
             final: 0
           });
         } else {
@@ -460,6 +485,8 @@ io.sockets.on("connection", function(socket) {
             user: data.userName,
             x: timeStringF,
             y: result[i].realP,
+            xH: frequencies,
+            yH: harmonics,
             final: 1
           });
         }

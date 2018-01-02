@@ -40,7 +40,7 @@
   <div id="Control">
     Setting Relay 1
     <form method="post" name="setRelay">
-      <input type="radio" id="relay1On" name="setRelay1" value="on"> Circuit On<br>
+      <input type="radio" id="relay1On" name="setRelay1" value="on" checked> Circuit On<br>
       <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off<br>
     </form>
   </div>
@@ -71,7 +71,7 @@
 
     <div id="powerChart">
       <p>Power</p>
-      <canvas id="power" width="500" height="500"></canvas>
+      <!-- <canvas id="power" width="500" height="500"></canvas> -->
     </div>
     <div id="harmonics">
 
@@ -188,9 +188,24 @@
       }
     });
 
+    //Relay control functions
+    document.getElementById("relay1On").onclick = function() {
+      socketio.emit("setRelay", {
+        name: 'setRelay1',
+        data: "ON"
+      });
+    }
+
+    document.getElementById("relay1Off").onclick = function() {
+      socketio.emit("setRelay", {
+        name: 'setRelay1',
+        data: "OFF"
+      });
+    }
+
     //response to success full logged change
     socketio.on("changeLogged", function(data) {
-      alert("change logged");
+      // alert("change logged"); //FIXME: commented this because it was getting annoying
       updateDisplay();
       var learningModeOn = false;
       if (document.getElementById("learningOn").checked) {
@@ -266,6 +281,7 @@
         chartMaker(chart1DataX, chart1DataY, "powerChart");
         // FIXME: for making harmonics
         // chartMaker(chartHDataX, chartHDataY, "harmonics");
+        chartMaker(data.xH, data.yH, "harmonics");
       }
 
 
