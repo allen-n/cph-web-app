@@ -91,7 +91,7 @@
       document.getElementById("devices").style.display = "none";
       document.getElementById("successDevices").style.display = "none";
       document.getElementById("Circuit_Controls").style.display = "none";
-      document.getElementById("r2").style.display = "none";
+      // document.getElementById("r2").style.display = "none";
       document.getElementById("Control").style.display = "none";
       document.getElementById("Teaching").style.display = "none";
     }
@@ -205,7 +205,7 @@
     }
 
     // view radio buttons
-    for (var i = 3; i < 6; i++) {
+    for (var i = 2; i < 6; i++) {
       document.getElementById("r"+i).onclick = function() {
           updateDisplay();
       }
@@ -296,10 +296,6 @@
       if(data.clearGraphs){
         chart1DataX = [];
         chart1DataY = [];
-        rmChild("powerChart");
-        rmChild("harmonicsChart");
-        // Plotly.deleteTraces("powerChart",0);
-        // Plotly.deleteTraces("harmoicsChart",0);
       }
       chart1DataX.push(data.x);
       chart1DataY.push(data.y);
@@ -322,7 +318,11 @@
       var stacksDiv = document.getElementById(elementID);
       var traces = [{
           x: chartDataX,
-          y: chartDataY
+          y: chartDataY,
+          mode: 'lines+markers',
+          line: {shape: 'hv'}, //FIXME: needs to be different for harmonics, use vhv or linear
+          type: 'scatter',
+          name: 'Power'
         },
 
       ];
@@ -342,8 +342,8 @@
 
       };
 
-      Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
-      // Plotly.newPlot(stacksDiv, traces, layout);
+      // Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
+      Plotly.newPlot(stacksDiv, traces, layout);
     }
 
     function stackedArea(traces) {
