@@ -65,7 +65,6 @@ con.connect(function(err) {
 var particleApp = http.createServer(function(req, res) {
   var body = "";
   req.on('data', function(chunk) {
-    console.log("recieving data on 3456!")
     body += chunk;
   });
   req.on('end', function() {
@@ -428,8 +427,18 @@ io.sockets.on("connection", function(socket) {
     if (date.getDate() < 10) {
       day = "0" + day;
     }
+    console.log(date);
+    console.log("dimension is: "+data.dimension);
     sql = "SELECT * FROM " + databaseName;
 
+    //FIXME: the sizing error isn't coming from here
+    // let win_length = 1;
+    // sql += " WHERE time >= now() - interval " + win_length;
+    // if (data.dimension) {
+    //    sql+= " " + data.dimension;
+    // } else {
+    //   sql+= " " + 'year';
+    // }
 
     con.query(sql, function(err, result, fields) {
       if (err) throw err;
@@ -459,8 +468,8 @@ io.sockets.on("connection", function(socket) {
         var monthC = 0;
         for (var j = 0; j < monthArr.length; j++) {
           if (monthArr[j] == timeArray[1]) {
-            console.log(monthArr[j]);
-            console.log(timeArray[1]);
+            // console.log(monthArr[j]);
+            // console.log(timeArray[1]);
             monthC = j + 1;
           }
         }
@@ -471,6 +480,8 @@ io.sockets.on("connection", function(socket) {
         console.log("result[i].power:" + result[i].realP);
         var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4,result[i].x5, result[i].x6];
         var frequencies = [0,60,120,180,240,300];
+        var clearGraphs = false;
+        // if(i == 0 && data.resize) clearGraphs = true; //FIXME
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,
@@ -478,7 +489,8 @@ io.sockets.on("connection", function(socket) {
             y: result[i].realP,
             xH: frequencies,
             yH: harmonics,
-            final: 0
+            final: false,
+            clearGraphs: clearGraphs
           });
         } else {
           io.sockets.emit("updateResult", {
@@ -487,7 +499,8 @@ io.sockets.on("connection", function(socket) {
             y: result[i].realP,
             xH: frequencies,
             yH: harmonics,
-            final: 1
+            final: true,
+            clearGraphs: false
           });
         }
 
