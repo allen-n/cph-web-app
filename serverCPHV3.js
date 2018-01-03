@@ -432,13 +432,13 @@ io.sockets.on("connection", function(socket) {
     sql = "SELECT * FROM " + databaseName;
 
     //FIXME: the sizing error isn't coming from here
-    // let win_length = 1;
-    // sql += " WHERE time >= now() - interval " + win_length;
-    // if (data.dimension) {
-    //    sql+= " " + data.dimension;
-    // } else {
-    //   sql+= " " + 'year';
-    // }
+    let win_length = 1;
+    sql += " WHERE time >= now() - interval " + win_length;
+    if (data.dimension) {
+       sql+= " " + data.dimension;
+    } else {
+      sql+= " " + 'year';
+    }
 
     con.query(sql, function(err, result, fields) {
       if (err) throw err;
@@ -481,7 +481,7 @@ io.sockets.on("connection", function(socket) {
         var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4,result[i].x5, result[i].x6];
         var frequencies = [0,60,120,180,240,300];
         var clearGraphs = false;
-        // if(i == 0 && data.resize) clearGraphs = true; //FIXME
+        if(i == 0 && data.resize) clearGraphs = true;
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,

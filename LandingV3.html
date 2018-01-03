@@ -134,16 +134,12 @@
         dimension = document.getElementById('r5').value;
       }
       if(user) {
-        // alert("Resize Display: " +dimension + " by " + user); //FIXME
+        // alert("Resize Display: " +dimension + " by " + user);
         socketio.emit("updateDisplay", {
           user: user,
-          dimension: dimension
+          dimension: dimension,
+          resize: true
         });
-        // socketio.emit("updateDisplay", { //FIXME
-        //   user: user,
-        //   dimension: dimension,
-        //   resize: true
-        // });
       }
 
     }
@@ -209,9 +205,9 @@
     }
 
     // view radio buttons
-    for (var i = 2; i < 6; i++) {
+    for (var i = 3; i < 6; i++) {
       document.getElementById("r"+i).onclick = function() {
-          // updateDisplay(); //FIXME
+          updateDisplay();
       }
     }
     //
