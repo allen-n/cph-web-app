@@ -1,3 +1,5 @@
+#!/usr/bin/env nodejs
+//FIXME: maybe the line above will fix the node modules thing?
 var http = require('http');
 var postHTML =
   '<html><head><title>CyberPowered-Home-Prototype</title></head>' +
@@ -126,20 +128,6 @@ var mostRecent;
 var io = socketio.listen(app);
 io.sockets.on("connection", function(socket) {
 
-//   function storeIncomingData(dataArray, labelArray) {
-//
-//   var databaseName = "timeEntryuserA1"; //+data.user;
-//   var sql = "INSERT INTO " + databaseName +
-//     " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
-//     dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
-//     ", " + dataArray[4] + ", " + dataArray[5] + ")";
-//   con.query(sql, function(err, result) {
-//     if (err) throw err;
-//     io.sockets.emit("changeLogged", {
-//       user: "autoData"
-//     });
-//   });
-// }
 
 
 
@@ -441,27 +429,27 @@ io.sockets.on("connection", function(socket) {
     }
 
     con.query(sql, function(err, result, fields) {
-      if (err) throw err;
+    if (err) throw err;
+    if (result.length > 0) {
       console.log(result[1]);
       console.log(result[1].time);
-
-      /*
-				timeArray[0]: Thu
-				timeArray[1]: Aug
-				timeArray[2]: 03
-				timeArray[3]: 2017
-				timeArray[4]: 05
-				timeArray[5]: 18
-				timeArray[6]: 55
-				timeArray[7]: GMT+0000
-				timeArray[8]: (UTC)
-			 */
 
       //The abreviations here may not all be correct, they are guesses.
       var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
-
+      var prevDate, currentDate, prevPower, currentPower = null;
+      var intervalE = 0;
       for (var i = 0; i < result.length; i++) {
+        currentDate = new Date(result[i].time);
+        currentPower = result[i].realP;
+        if(prevDate && prevPower) {
+          intervalE = (Date.parse(currentDate) - Date.parse(prevDate))*prevPower/(1000); //energy in Joules
+        }
+        intervalE = intervalE/(3600); //energy in Watt-Hours
+        prevDate = currentDate;
+        prevPower = currentPower;
+
+        console.log("test intervalE: " + intervalE  )
         var timeString = "" + result[i].time;
         var timeArray = timeString.split(/[- :]/);
 
@@ -478,15 +466,16 @@ io.sockets.on("connection", function(socket) {
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         console.log("timeStringF:" + timeStringF);
         console.log("result[i].power:" + result[i].realP);
-        var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4,result[i].x5, result[i].x6];
-        var frequencies = [0,60,120,180,240,300];
+        var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
+        var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;
-        if(i == 0 && data.resize) clearGraphs = true;
+        if (i == 0 && data.resize) clearGraphs = true;
         if (i < result.length - 1) {
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,
             y: result[i].realP,
+            y2: intervalE,
             xH: frequencies,
             yH: harmonics,
             final: false,
@@ -497,30 +486,26 @@ io.sockets.on("connection", function(socket) {
             user: data.userName,
             x: timeStringF,
             y: result[i].realP,
+            y2: intervalE,
             xH: frequencies,
             yH: harmonics,
             final: true,
             clearGraphs: false
           });
         }
-
-        /*
-        if(printMa){
-        	if(i===0){
-        	io.sockets.emit("updateResult",{user:data.userName, x1:x, x2:x, x3:x, y1:result[i].current,y2:result[i].voltage,y3:result[i].power,dimension:data.dimension, stage:"first"});
-        	}
-        	else if (i=== result.length-1){
-        		io.sockets.emit("updateResult",{user:data.userName, x1:x, x2:x, x3:x, y1:result[i].current,y2:result[i].voltage,y3:result[i].power, stage:"final",dimension:data.dimension });
-        	}
-        	else{
-        		io.sockets.emit("updateResult",{user:data.userName, x1:x, x2:x, x3:x, y1:result[i].current,y2:result[i].voltage,y3:result[i].power, stage:"",dimension:data.dimension});
-        	}
-        }
-
-        */
       }
-
-    });
+    } else {
+      io.sockets.emit("updateResult", {
+        user: data.userName,
+        x: [],
+        y:  [],
+        xH:  [],
+        yH:  [],
+        final: true,
+        clearGraphs: true
+      });
+    }
+  });
 
   });
 

@@ -280,34 +280,77 @@
     //global graphing vars
     var chart1DataX = [];
     var chart1DataY= [];
-
-    var chartHDataX = [];
-    var chartHDataY = [];
-
-    function rmChild(id){
-      var myNode = document.getElementById(id);
-      while (myNode.firstChild) {
-        myNode.removeChild(myNode.firstChild);
-      }
-    }
+    var chart1DataY2= [];
+    var prevY2 = 0;
 
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
       if(data.clearGraphs){
         chart1DataX = [];
         chart1DataY = [];
+        chart1DataY2= [];
+        prevY2 = 0;
       }
       chart1DataX.push(data.x);
       chart1DataY.push(data.y);
+      chart1DataY2.push(data.y2 + prevY2);
+      prevY2 = data.y2;
 
       //FIXME: for making harmonics
       // chartHDataX.push(data.xH);
       // chartHDataY.push(data.yH);
       if (data.final) {
-        chartMaker(chart1DataX, chart1DataY, "powerChart");
+        // chartMaker(chart1DataX, chart1DataY, "powerChart");
         // FIXME: for making harmonics
         // chartMaker(chartHDataX, chartHDataY, "harmonics");
         chartMaker(data.xH, data.yH, "harmonicsChart");
+
+        var trace1 = {
+          x: chart1DataX,
+          y: chart1DataY,
+          mode: 'lines+markers',
+          line: {shape: 'linear'},
+          type: 'scatter',
+          name: 'Power (W)'
+        };
+        var trace2 = {
+          x: chart1DataX,
+          y: chart1DataY2,
+          yaxis:'y2',
+          mode: 'lines+markers',
+          line: {shape: 'vh'},
+          type: 'scatter',
+          name: 'Energy (W-h)'
+        };
+
+        var data = [trace1, trace2];
+
+        var layout = {
+          autosize: false,
+          width: 500,
+          height: 500,
+          margin: {
+            l: 50,
+            r: 50,
+            b: 100,
+            t: 100,
+            pad: 4
+          },
+          yaxis: {title: 'Power (Watts)'},
+         yaxis2: {
+           title: 'Energy (Watt-Hours)',
+           overlaying: 'y',
+           side: 'right'
+         },
+         legend: {x:0.5,y:-0.5},
+          paper_bgcolor: '#7f7f7f',
+          plot_bgcolor: '#c7c7c7'
+
+        };
+
+
+        Plotly.newPlot("powerChart", data, layout);
+
       }
 
 
@@ -320,12 +363,11 @@
           x: chartDataX,
           y: chartDataY,
           mode: 'lines+markers',
-          line: {shape: 'hv'}, //FIXME: needs to be different for harmonics, use vhv or linear
+          line: {shape: 'linear'}, //FIXME: needs to be different for harmonics, use vhv or linear
           type: 'scatter',
           name: 'Power'
-        },
+        },];
 
-      ];
       var layout = {
         autosize: false,
         width: 500,
