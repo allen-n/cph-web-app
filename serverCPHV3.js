@@ -415,8 +415,8 @@ io.sockets.on("connection", function(socket) {
     if (date.getDate() < 10) {
       day = "0" + day;
     }
-    console.log(date);
-    console.log("dimension is: "+data.dimension);
+    // console.log(date);
+    // console.log("dimension is: "+data.dimension);
     sql = "SELECT * FROM " + databaseName;
 
     //FIXME: the sizing error isn't coming from here
@@ -431,8 +431,8 @@ io.sockets.on("connection", function(socket) {
     con.query(sql, function(err, result, fields) {
     if (err) throw err;
     if (result.length > 0) {
-      console.log(result[1]);
-      console.log(result[1].time);
+      // console.log(result[1]);
+      // console.log(result[1].time);
 
       //The abreviations here may not all be correct, they are guesses.
       var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
@@ -449,7 +449,7 @@ io.sockets.on("connection", function(socket) {
         prevDate = currentDate;
         prevPower = currentPower;
 
-        console.log("test intervalE: " + intervalE  )
+        // console.log("test intervalE: " + intervalE  )
         var timeString = "" + result[i].time;
         var timeArray = timeString.split(/[- :]/);
 
@@ -464,8 +464,8 @@ io.sockets.on("connection", function(socket) {
 
 
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
-        console.log("timeStringF:" + timeStringF);
-        console.log("result[i].power:" + result[i].realP);
+        // console.log("timeStringF:" + timeStringF);
+        // console.log("result[i].power:" + result[i].realP);
         var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
         var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;

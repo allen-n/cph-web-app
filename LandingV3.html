@@ -281,7 +281,7 @@
     var chart1DataX = [];
     var chart1DataY= [];
     var chart1DataY2= [];
-    var prevY2 = 0;
+    var prevE = 0.0;
 
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
@@ -289,12 +289,15 @@
         chart1DataX = [];
         chart1DataY = [];
         chart1DataY2= [];
-        prevY2 = 0;
+        prevE = 0;
+
       }
       chart1DataX.push(data.x);
       chart1DataY.push(data.y);
-      chart1DataY2.push(data.y2 + prevY2);
-      prevY2 = data.y2;
+
+      chart1DataY2.push(parseFloat(data.y2) + (prevE));
+      prevE += parseFloat(data.y2);
+
 
       //FIXME: for making harmonics
       // chartHDataX.push(data.xH);
