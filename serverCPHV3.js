@@ -75,8 +75,8 @@ var particleApp = http.createServer(function(req, res) {
       // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
       var dataArray = body.match(/[0-9]*[.][0-9]*/g);
       var labelArray = ["current", "voltage", "power factor",
-        "apparent power", "real power", "reactive power","h1",
-        "h2","h3","h4","h5","h6","error"
+        "apparent power", "real power", "reactive power", "h1",
+        "h2", "h3", "h4", "h5", "h6", "error"
       ];
       // for (i = 0; i < dataArray.length - 1; i++) {
       //   // dataArray[i].replace(/[=]/g,"");
@@ -96,7 +96,6 @@ var particleApp = http.createServer(function(req, res) {
     // $(body).insertBefore(".dataList") //FIXME
   });
 });
-
 particleApp.listen(3456);
 
 function storeIncomingData(dataArray, labelArray) {
@@ -124,13 +123,11 @@ var devices = [];
 var successDevices = [];
 var firstLoad = true;
 var mostRecent;
+var currentDeviceInfo = null; //holds all database information about current device profile;
 
+// server interactions with client via socketio
 var io = socketio.listen(app);
 io.sockets.on("connection", function(socket) {
-
-
-
-
 
   //check if registered user
   socket.on('login_attempt', function(data) {
@@ -144,6 +141,7 @@ io.sockets.on("connection", function(socket) {
           successUser = true;
           if (data.password == result[i].password) {
             successPass = true;
+            deviceInfoPush(); //push the device list
           }
         }
       }
@@ -175,19 +173,53 @@ io.sockets.on("connection", function(socket) {
     createDevice(data.deviceName, data.user);
   });
 
+  // response to user input to create new device profile
   function createDevice(deviceName, user) {
-    var databaseName = "devices";
-    var sql = "INSERT INTO " + databaseName + " ( current, voltage, realP, text1) VALUES (" + current + ", " + voltage + ", " + watts + ", '" + deviceName + "')";
-    con.query(sql, function(err, result) {
-      if (err) throw err;
+    if(currentDeviceInfo){
+      var databaseName = "devicesA1";
+      var sql = 'SELECT * FROM ' + databaseName + ' WHERE deviceName = \'' + deviceName + '\'';
+      con.query(sql, function(err, result) { //check if the device already exists
+        if (err) throw err;
+        if(result.length === 0) {
+          let cdi = currentDeviceInfo;
+          sql = "INSERT INTO " + databaseName + " ( current, voltage, Pfactor," +
+    " apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6, deviceName) VALUES (" +
+    cdi.current + ", " + cdi.voltage + ", " + cdi.Pfactor + ", " + cdi.apparentP + ", " + cdi.realP +
+    ", " + cdi.reactiveP + ", " + cdi.x1 + ", " + cdi.x2 + ", " + cdi.x3 +
+    ", " + cdi.x4 + ", " + cdi.x5 + ", " + cdi.x6 + ", \'" + deviceName + "\')";
+          // console.log("SQL: " + sql);
+          // for (var v in cdi) {
+          //   if (cdi.hasOwnProperty(v)) {
+          //     console.log(v + " : " + cdi[v]);
+          //   }
+          // }
+
+          con.query(sql, function(err, result) {
+            if (err) throw err;
+            io.sockets.emit("deviceCreated", {
+              user: user,
+              deviceName: deviceName,
+              error: null
+            });
+          });
+        } else {
+          io.sockets.emit("deviceCreated", {
+            user: user,
+            deviceName: deviceName,
+            error: 'Device name take, try again.'
+          });
+        }
+      });
+    } else {
       io.sockets.emit("deviceCreated", {
         user: user,
-        deviceName: deviceName
+        deviceName: deviceName,
+        error: 'No devices currently detected, try changing time view.'
       });
-    });
-
+    }
   }
-  //controlling relay 1
+
+  //response to user input on relay (circuit) control
   socket.on('setRelay', function(data) {
 
     var publishEventPr = particle.publishEvent({
@@ -222,7 +254,7 @@ io.sockets.on("connection", function(socket) {
 
   });
 
-  //pulling devices from Database that have previously been recorded
+  //displaying previously recorded devices from database
   function readInDevices() {
     con.query("SELECT * FROM devices", function(err, result, fields) {
       if (err) throw err;
@@ -355,54 +387,60 @@ io.sockets.on("connection", function(socket) {
 
   //push device info to client side for display
   function deviceInfoPush() {
-    for (var i = 0; i < devices.length; i++) {
-      if (i === 0) {
-        io.sockets.emit("devicesUpdate", {
-          deviceName: devices[i].deviceName,
-          current: devices[i].current,
-          voltage: devices[i].voltage,
-          power: devices[i].power,
-          first: true
-        });
-      } else {
-        io.sockets.emit("devicesUpdate", {
-          deviceName: devices[i].deviceName,
-          current: devices[i].current,
-          voltage: devices[i].voltage,
-          power: devices[i].power,
-          first: false
-        });
+    var databaseName = "devicesA1";
+    var sql = 'SELECT deviceName FROM ' + databaseName;
+    con.query(sql, function (err, devices) {
+      if (err) throw err;
+      for (var i = 0; i < devices.length; i++) {
+        if (i === 0) {
+          io.sockets.emit("devicesUpdate", {
+            deviceName: devices[i].deviceName,
+            // current: devices[i].current,
+            // voltage: devices[i].voltage,
+            // power: devices[i].power,
+            first: true
+          });
+        } else {
+          io.sockets.emit("devicesUpdate", {
+            deviceName: devices[i].deviceName,
+            // current: devices[i].current,
+            // voltage: devices[i].voltage,
+            // power: devices[i].power,
+            first: false
+          });
+        }
       }
+    });
 
-
-    }
-    for (i = 0; i < successDevices.length; i++) {
-      if (i === 0) {
-        io.sockets.emit("successDevicesUpdate", {
-          deviceName: successDevices[i].deviceName,
-          current: successDevices[i].current,
-          voltage: successDevices[i].voltage,
-          power: successDevices[i].power,
-          count: successDevices[i].count,
-          first: true
-        });
-      } else {
-        io.sockets.emit("successDevicesUpdate", {
-          deviceName: successDevices[i].deviceName,
-          current: successDevices[i].current,
-          voltage: successDevices[i].voltage,
-          power: successDevices[i].power,
-          count: successDevices[i].count,
-          first: false
-        });
-      }
-
-    }
+    // 
+    // for (i = 0; i < successDevices.length; i++) {
+    //   if (i === 0) {
+    //     io.sockets.emit("successDevicesUpdate", {
+    //       deviceName: successDevices[i].deviceName,
+    //       current: successDevices[i].current,
+    //       voltage: successDevices[i].voltage,
+    //       power: successDevices[i].power,
+    //       count: successDevices[i].count,
+    //       first: true
+    //     });
+    //   } else {
+    //     io.sockets.emit("successDevicesUpdate", {
+    //       deviceName: successDevices[i].deviceName,
+    //       current: successDevices[i].current,
+    //       voltage: successDevices[i].voltage,
+    //       power: successDevices[i].power,
+    //       count: successDevices[i].count,
+    //       first: false
+    //     });
+    //   }
+    //
+    // }
 
   }
 
   //updating the data, for display in graphs
   socket.on('updateDisplay', function(data) {
+    deviceInfoPush();
     var databaseName = "timeEntry" + data.user;
     var date = new Date();
 
@@ -479,9 +517,10 @@ io.sockets.on("connection", function(socket) {
             xH: frequencies,
             yH: harmonics,
             final: false,
-            clearGraphs: clearGraphs
+            clearGraphs: clearGraphs,
           });
         } else {
+          currentDeviceInfo = result[i];
           io.sockets.emit("updateResult", {
             user: data.userName,
             x: timeStringF,

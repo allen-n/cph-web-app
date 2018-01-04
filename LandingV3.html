@@ -174,7 +174,7 @@
         document.getElementById("charts").style.display = "block";
         document.getElementById("devices").style.display = "block";
         document.getElementById("successDevices").style.display = "block";
-        //document.getElementById("Circuit_Controls").style.display = "block";
+        document.getElementById("Circuit_Controls").style.display = "block";
         document.getElementById("login").style.display = "none";
         document.getElementById("Control").style.display = "block";
 
@@ -235,7 +235,12 @@
     });
     //response to device being successfully created
     socketio.on("deviceCreated", function(data) {
-      alert("device " + data.deviceName + " has been created");
+      if(!(data.error)){
+        alert("device " + data.deviceName + " has been created");
+      } else {
+        alert("Error: " + data.error);
+      }
+
       var learningModeOn = false;
       if (document.getElementById("learningOn").checked) {
         learningModeOn = true;
@@ -248,12 +253,16 @@
 
     });
     //creating updated list of known devices
-    socketio.on("devicesUpdate", function(data) {
+    socketio.on("devicesUpdate", function(data) {      
+      var myNode = document.getElementById("devices");
       if (data.first === true) {
-        document.getElementById("devices").innerHTML = "Identified devices: ";
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.firstChild);
+        }
+        myNode.innerHTML = "Identified devices: ";
       }
-      document.getElementById("devices").appendChild(document.createElement("br"));
-      document.getElementById("devices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+      myNode.appendChild(document.createElement("br"));
+      myNode.appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
 
     });
 
@@ -285,6 +294,7 @@
 
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
+
       if(data.clearGraphs){
         chart1DataX = [];
         chart1DataY = [];
