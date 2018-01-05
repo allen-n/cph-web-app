@@ -3,14 +3,19 @@
 <html>
 
 <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--I used http://createjs.com/getting-started-->
-  <style>
+  <!-- FIXME: commented the style block for bootstrap -->
+  <!-- <style>
     div {
       border: double;
     }
-  </style>
+  </style> -->
+  <!-- Bootstrap -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
   <title>CPH Monitoring Page</title>
-  <meta charset="UTF-8">
   <!--<style>
       div{
          border-style: solid;
@@ -84,6 +89,10 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <!-- Include all compiled plugins (below), or include individual files as needed -->
+  <script src="js/bootstrap.min.js"></script>
   <script type="text/javascript">
     //page load call, to hide elements and make clear the need to log-in
     function init() {
