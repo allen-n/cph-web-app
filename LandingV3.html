@@ -253,7 +253,7 @@
 
     });
     //creating updated list of known devices
-    socketio.on("devicesUpdate", function(data) {      
+    socketio.on("devicesUpdate", function(data) {
       var myNode = document.getElementById("devices");
       if (data.first === true) {
         while (myNode.firstChild) {
@@ -266,15 +266,28 @@
 
     });
 
-    //creating updated list of "on devices"
-    socketio.on("successDevicesUpdate", function(data) {
-      alert("entered successdevicesUpdate");
+    socketio.on("devicesPowered", function(data) {
+      var myNode = document.getElementById("successDevices");
       if (data.first === true) {
-        document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.firstChild);
+        }
+        myNode.innerHTML = "Currently Powered Devices: ";
       }
-      document.getElementById("successDevices").appendChild(document.createElement("br"));
-      document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+      myNode.appendChild(document.createElement("br"));
+      myNode.appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+
     });
+    //
+    // //creating updated list of "on devices"
+    // socketio.on("successDevicesUpdate", function(data) {
+    //   alert("entered successdevicesUpdate");
+    //   if (data.first === true) {
+    //     document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+    //   }
+    //   document.getElementById("successDevices").appendChild(document.createElement("br"));
+    //   document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+    // });
 
     socketio.on("requestName", function(data) {
       document.getElementById("Circuit_Controls").style.display = "block";

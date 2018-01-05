@@ -116,6 +116,64 @@ function storeIncomingData(dataArray, labelArray) {
       user: "autoData"
     });
   });
+  measureChange(databaseName);
+}
+
+function measureChange (databaseName){
+  var sql = "SELECT * FROM "+ databaseName + " ORDER BY event_id DESC LIMIT 2";
+
+  con.query(sql, function(err, result) {
+    if (err) throw err;
+
+    if (result.length === 2) {
+      var current = result[0]; //FIXME: may need to reverse if I got the order wrong
+      var prev = result[1];
+      var diff = {};
+      for (var key in current){
+        if (current.hasOwnProperty(key)) {
+          diff[key] = current[key] - prev[key];
+        }
+      }
+    }
+
+    var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
+    for (var k2 in diff) {
+      if (diff.hasOwnProperty(k2)) {
+        diff[k2] = Math.abs(diff[k2]);
+        // console.log(k2 + ' : ' + diff[k2])
+      }
+    }
+    databaseName = "devicesA1";
+    sql = 'SELECT deviceName FROM ' + databaseName + ' WHERE';
+    var hi = 1.05; var lo = .95; // threshold positive/negative of 5%
+    // so that we aren't comparing on non-comparison keys
+    var badKeys = {"event_id":0,"time":0, "text1":0, "text2":0, "text3":0};
+
+    for (var k in diff) {
+      if (diff.hasOwnProperty(k) && !(badKeys.hasOwnProperty(k))) {
+        sql += ' ' + k + ' >= ' + (diff[k] * lo).toFixed(2) + ' AND ' +
+        k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND '
+      }
+    }
+    sql = sql.substr(0, sql.lastIndexOf('AND'));
+    con.query(sql, function(err, devices) {
+      if (err) throw err;
+      for (var i = 0; i < devices.length; i++) {
+        io.sockets.emit("devicesPowered", {
+          user: user,
+          deviceName: devices[i].deviceName,
+          error: null
+        });
+      }
+    });
+    // console.log('SQL: ' + sql)
+    // io.sockets.emit("changeLogged", {
+    //   user: "autoData"
+    // });
+  });
+
+
+
 }
 
 //global vars
@@ -412,7 +470,7 @@ io.sockets.on("connection", function(socket) {
       }
     });
 
-    // 
+    //
     // for (i = 0; i < successDevices.length; i++) {
     //   if (i === 0) {
     //     io.sockets.emit("successDevicesUpdate", {
@@ -441,6 +499,8 @@ io.sockets.on("connection", function(socket) {
   //updating the data, for display in graphs
   socket.on('updateDisplay', function(data) {
     deviceInfoPush();
+    console.log('change data below');
+    measureChange("timeEntryuserA1"); //FIXME, this is just for testing
     var databaseName = "timeEntry" + data.user;
     var date = new Date();
 
