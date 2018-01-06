@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+
+    <title>CPH Sign-in Page</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <!-- <link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet"> -->
+
+    <!-- Custom styles for this template -->
+    <link href="signin.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <!-- <script src="../../assets/js/ie-emulation-modes-warning.js"></script> -->
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <form class="form-signin">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="inputEmail" class="sr-only">Username</label>
+        <input type="names" id="inputEmail" class="form-control" placeholder="Email address or Username" required autofocus>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <!-- <div class="checkbox">
+          <label>
+            <input type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div> -->
+        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick="login()">Sign in</button>
+      </form>
+
+    </div> <!-- /container -->
+
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <!-- <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script> -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script type="text/javascript"> //login script
+      var user = null;
+      var socketio = io.connect();
+
+      //function used to login a user
+      function login() {
+        // $("document").load("landingV4.html");
+        var userTemp = document.getElementById("inputEmail").value;
+        var pass = document.getElementById("inputPassword").value;
+        if (userTemp === "") {
+          // alert("You must enter a username");
+        } else if(pass == "") {
+          // alert("You must also enter a password");
+        } else {
+          user = userTemp;
+          socketio.emit("login_attempt", {
+            userName: user,
+            password: pass
+          });
+        }
+      }
+
+      //updating screen in response to successful login
+      socketio.on("loginResult", function(data) {
+        if (!data.successUser) {
+          alert("Username not recognized");
+        } else {
+          if (!data.successPass) {
+            alert("Password incorrect");
+          }
+        }
+        if (data.successUser && data.successPass) {
+          // location.replace(landingV4.html);
+          console.log("successful login");
+          window.location.replace('landingV4.html');
+        }
+      });
+
+      function load_page(page, path = '/'){
+        var qr=new XMLHttpRequest();
+        qr.open('get',path + page);
+        qr.send();
+        qr.onreadystatechange=function(){body.innerHTML=this.responseText}
+      };
+
+
+    </script>
+  </body>
+</html>

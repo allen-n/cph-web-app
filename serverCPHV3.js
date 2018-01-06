@@ -30,17 +30,35 @@ particle.login({
 var http = require("http"),
   socketio = require("socket.io"),
   mysql = require('mysql'),
-  fs = require("fs");
+  fs = require("fs"),
+  url = require('url');
+
 
 // Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html:
 var app = http.createServer(function(req, resp) {
   // This callback runs when a new connection is made to our HTTP server.
-  fs.readFile("files/LandingV3.html", function(err, data) {
-    // This callback runs when the client.html file has been read from the filesystem.
+  // fs.readFile("files/LandingV3.html", function(err, data) {
 
-    if (err) return resp.writeHead(500);
-    resp.writeHead(200);
-    resp.end(data);
+  var pathname = url.parse(req.url).pathname;
+  switch (pathname) {
+    case '/signinV4.html':
+      break;
+    case '/landingV4.html':
+      break;
+    case '/landingV3.html':
+      break;
+    default:
+      pathname = '/signinV4.html';
+      break;
+  }
+  // console.log(pathname)
+  fs.readFile("files"+ pathname, function(err, data) {
+  // This callback runs when the client.html file has been read from the filesystem.
+
+
+  if (err) return resp.writeHead(500);
+  resp.writeHead(200);
+  resp.end(data);
   });
 
 
