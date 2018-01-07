@@ -45,7 +45,7 @@ var app = http.createServer(function(req, resp) {
       break;
     case '/landingV4.html':
       break;
-    case '/landingV3.html':
+    case '/LandingV3.html':
       break;
     default:
       pathname = '/signinV4.html';
@@ -466,6 +466,7 @@ io.sockets.on("connection", function(socket) {
     var databaseName = "devicesA1";
     var sql = 'SELECT deviceName FROM ' + databaseName;
     con.query(sql, function (err, devices) {
+      console.log("Sending device data, length: "+ devices.length )
       if (err) throw err;
       for (var i = 0; i < devices.length; i++) {
         if (i === 0) {

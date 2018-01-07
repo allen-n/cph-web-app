@@ -6,8 +6,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-  <meta name="description" content="">
-  <meta name="author" content="">
+  <meta name="description" content="CPH Landing Page Prototype">
+  <meta name="author" content="Allen Nikka">
   <link rel="icon" href="../../favicon.ico">
 
   <title>CPH Monitoring Page</title>
@@ -18,14 +18,14 @@
   <!-- Optional theme -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
   <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-  <link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+  <!-- <link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet"> -->
 
   <!-- Custom styles for this template -->
   <link href="theme.css" rel="stylesheet">
 
   <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
   <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
-  <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
+  <!-- <script src="../../assets/js/ie-emulation-modes-warning.js"></script> -->
 
   <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
   <!--[if lt IE 9]>
@@ -34,7 +34,7 @@
     <![endif]-->
 </head>
 
-<body>
+<body onload="init()">
 
   <!-- Fixed navbar -->
   <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -80,7 +80,95 @@
       <p>This is a template showcasing the optional theme stylesheet included in Bootstrap. Use it as a starting point to create something more unique by building on or modifying it.</p>
     </div>
 
+    <div class="page-header" id="Circuit_Controls">
+      <h1>Device Management</h1>
+    </div>
+    <p>
 
+      <label>Device Name:</label> <input type="text" id="deviceName"/>
+      <button type="button" class="btn btn-sm btn-success">Submit</button>
+
+    </p>
+    <div id="control">
+      <p>
+        <form method="post" name="setRelay">
+          <label>Set Relay 1:</label>
+          <input type="radio" id="relay1On" name="setRelay1" value="on" checked> Circuit On
+          <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off
+        </form>
+      </p>
+    </div>
+
+    <div class="page-header">
+      <h1>Active Devices:</h1>
+    </div>
+    <!-- <p>
+      <div id="successDevices"></div>
+      <div id="devices"></div>
+    </p> -->
+
+
+    <div class="page-header">
+      <h1>Devices: Test</h1>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Classified Devices</th>
+            </tr>
+          </thead>
+          <tbody id="devices">
+          </tbody>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Active Devices</th>
+            </tr>
+          </thead>
+          <tbody id="successDevices">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-header">
+      <h1>Power Consumption</h1>
+    </div>
+    <p>
+      <label> View Past: </label>
+      <input type="radio" id="r2" name="display" value="Hour"> Hour
+      <input type="radio" id="r3" name="display" value="Day"> Day
+      <input type="radio" id="r4" name="display" value="Month" > Month
+      <input type="radio" id="r5" name="display" value="Year" checked> Year
+    </p>
+    <div class="row">
+      <div class="col-md-6" id="powerChart">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Power</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="col-md-6" id="harmonicsChart">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Harmonics</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+
+
+<!--
     <div class="page-header">
       <h1>Buttons</h1>
     </div>
@@ -119,7 +207,7 @@
       <button type="button" class="btn btn-xs btn-warning">Warning</button>
       <button type="button" class="btn btn-xs btn-danger">Danger</button>
       <button type="button" class="btn btn-xs btn-link">Link</button>
-    </p>
+    </p> -->
 
 
     <div class="page-header">
@@ -504,7 +592,6 @@
           <li class="list-group-item">Vestibulum at eros</li>
         </ul>
       </div>
-      <!-- /.col-sm-4 -->
       <div class="col-sm-4">
         <div class="list-group">
           <a href="#" class="list-group-item active">
@@ -648,7 +735,12 @@
   <!-- Bootstrap core JavaScript
     ================================================== -->
   <!-- Placed at the end of the document so the pages load faster -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
   <!-- <script>
     window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')
   </script> -->
@@ -662,6 +754,352 @@
     function logout(){
       window.location.replace('loginV4.html');
     }
+    //page load call, to hide elements and make clear the need to log-in
+    function init() {
+      // document.getElementById("charts").style.display = "none";
+      // document.getElementById("devices").style.display = "none";
+      // document.getElementById("successDevices").style.display = "none";
+      // document.getElementById("Circuit_Controls").style.display = "none";
+      // // document.getElementById("r2").style.display = "none";
+      // document.getElementById("Control").style.display = "none";
+      // document.getElementById("Teaching").style.display = "none";
+      updateDisplay();
+    }
+
+
+    //global vars
+    var user = 'userA1'; //FIXME: need to use express to do routing and deal with session variables
+    var socketio = io.connect();
+
+    //function used to login a user
+    function login() {
+      var userTemp = document.getElementById("username").value;
+      var pass = document.getElementById("password").value;
+      if (userTemp === "") {
+        alert("You must enter a username");
+      } else {
+        user = userTemp;
+        socketio.emit("login_attempt", {
+          userName: user,
+          password: pass
+        });
+      }
+    }
+
+
+    //update graphs
+    function updateDisplay() {
+      console.log("Display updated")
+      var dimension;
+      if (document.getElementById('r2').checked) {
+        dimension = document.getElementById('r2').value;
+      }
+      if (document.getElementById('r3').checked) {
+        dimension = document.getElementById('r3').value;
+      }
+      if (document.getElementById('r4').checked) {
+        dimension = document.getElementById('r4').value;
+      }
+      if (document.getElementById('r5').checked) {
+        dimension = document.getElementById('r5').value;
+      }
+      if(user) {
+        // alert("Resize Display: " +dimension + " by " + user);
+        socketio.emit("updateDisplay", {
+          user: user,
+          dimension: dimension,
+          resize: true
+        });
+      }
+
+    }
+
+    //call used to begin creation of device
+    function createDevice(number) {
+      if (number == 1) {
+        alert("number is 1!");
+      }
+
+      var deviceName = document.getElementById("deviceName").value;
+      document.getElementById("deviceName").value = '';
+
+      socketio.emit("createDevice", {
+        user: user,
+        deviceName: deviceName
+      });
+    }
+
+
+    //updating screen in response to successful login
+    socketio.on("loginResult", function(data) {
+      if (!data.successUser) {
+        alert("Username not recognized");
+      } else {
+        if (!data.successPass) {
+          alert("Password incorrect");
+        }
+      }
+      if (data.successUser && data.successPass) {
+        alert(data.user + " is logged-in");
+        user = data.user;
+        document.getElementById("charts").style.display = "block";
+        document.getElementById("devices").style.display = "block";
+        document.getElementById("successDevices").style.display = "block";
+        document.getElementById("Circuit_Controls").style.display = "block";
+        document.getElementById("login").style.display = "none";
+        document.getElementById("Control").style.display = "block";
+
+        document.getElementById("devices").innerHTML = "Identified devices: ";
+        document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+
+        updateDisplay();
+        socketio.emit("pullDevices", {
+          user: user
+        });
+
+      }
+    });
+
+    //Relay control functions
+    document.getElementById("relay1On").onclick = function() {
+      socketio.emit("setRelay", {
+        name: 'setRelay1',
+        data: "ON"
+      });
+    }
+
+    document.getElementById("relay1Off").onclick = function() {
+      socketio.emit("setRelay", {
+        name: 'setRelay1',
+        data: "OFF"
+      });
+    }
+
+    // view radio buttons
+    for (var i = 2; i < 6; i++) {
+      document.getElementById("r"+i).onclick = function() {
+          updateDisplay();
+      }
+    }
+    //
+    // function emitDisplay(element) {
+    //
+    //   socketio.emit("updateDisplay", {
+    //     user: user,
+    //     view: element.value
+    //   });
+    // }
+
+    //response to success full logged change
+    socketio.on("changeLogged", function(data) {
+      // alert("change logged"); //FIXME: commented this because it was getting annoying
+      updateDisplay();
+      var learningModeOn = false;
+      if (document.getElementById("learningOn").checked) {
+        learningModeOn = true;
+      }
+      socketio.emit("pullDevices", {
+        user: user,
+        learningModeOn: learningModeOn
+      });
+
+    });
+    //response to device being successfully created
+    socketio.on("deviceCreated", function(data) {
+      if(!(data.error)){
+        alert("device " + data.deviceName + " has been created");
+      } else {
+        alert("Error: " + data.error);
+      }
+
+      var learningModeOn = false;
+      if (document.getElementById("learningOn").checked) {
+        learningModeOn = true;
+      }
+      socketio.emit("pullDevices", {
+        user: user,
+        learningModeOn: learningModeOn
+      });
+
+
+    });
+    //creating updated list of known devices
+    socketio.on("devicesUpdate", function(data) {
+      console.log("Listing " + data.deviceName);
+      var myNode = document.getElementById("devices");
+      if (data.first === true) {
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.firstChild);
+        }
+        // myNode.innerHTML = "Identified devices: ";
+      }
+      var new_row = myNode.appendChild(document.createElement("tr"));
+
+      myNode.appendChild(document.createElement("td"));
+      new_row.insertCell(0).innerHTML = data.deviceName;
+
+      //appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+
+    });
+
+    socketio.on("devicesPowered", function(data) {
+      var myNode = document.getElementById("successDevices");
+      if (data.first === true) {
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.firstChild);
+        }
+        // myNode.innerHTML = "Currently Powered Devices: ";
+      }
+      myNode.appendChild(document.createElement("tr"));
+      myNode.appendChild(document.createElement("td"));
+      myNode.appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+
+    });
+    //
+    // //creating updated list of "on devices"
+    // socketio.on("successDevicesUpdate", function(data) {
+    //   alert("entered successdevicesUpdate");
+    //   if (data.first === true) {
+    //     document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
+    //   }
+    //   document.getElementById("successDevices").appendChild(document.createElement("br"));
+    //   document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+    // });
+
+    socketio.on("requestName", function(data) {
+      document.getElementById("Circuit_Controls").style.display = "block";
+      alert("Unrecognized device connected to system! Please name it");
+      alert(data.mostRecent);
+
+    });
+
+
+    //ALL BELOW IS GRAPH BUILDER
+
+    //global graphing vars
+    var chart1DataX = [];
+    var chart1DataY= [];
+    var chart1DataY2= [];
+    var prevE = 0.0;
+
+    //update result return, prepare for graph building
+    socketio.on("updateResult", function(data) {
+
+      if(data.clearGraphs){
+        chart1DataX = [];
+        chart1DataY = [];
+        chart1DataY2= [];
+        prevE = 0;
+
+      }
+      chart1DataX.push(data.x);
+      chart1DataY.push(data.y);
+
+      chart1DataY2.push(parseFloat(data.y2) + (prevE));
+      prevE += parseFloat(data.y2);
+
+
+      //FIXME: for making harmonics
+      // chartHDataX.push(data.xH);
+      // chartHDataY.push(data.yH);
+      if (data.final) {
+        // chartMaker(chart1DataX, chart1DataY, "powerChart");
+        // FIXME: for making harmonics
+        // chartMaker(chartHDataX, chartHDataY, "harmonics");
+        chartMaker(data.xH, data.yH, "harmonicsChart");
+
+        var trace1 = {
+          x: chart1DataX,
+          y: chart1DataY,
+          mode: 'lines+markers',
+          line: {shape: 'linear'},
+          type: 'scatter',
+          name: 'Power (W)'
+        };
+        var trace2 = {
+          x: chart1DataX,
+          y: chart1DataY2,
+          yaxis:'y2',
+          mode: 'lines+markers',
+          line: {shape: 'vh'},
+          type: 'scatter',
+          name: 'Energy (W-h)'
+        };
+
+        var data = [trace1, trace2];
+
+        var layout = {
+          autosize: false,
+          width: 500,
+          height: 500,
+          margin: {
+            l: 50,
+            r: 50,
+            b: 100,
+            t: 100,
+            pad: 4
+          },
+          yaxis: {title: 'Power (Watts)'},
+         yaxis2: {
+           title: 'Energy (Watt-Hours)',
+           overlaying: 'y',
+           side: 'right'
+         },
+         legend: {x:0.5,y:-0.5},
+          paper_bgcolor: '#7f7f7f',
+          plot_bgcolor: '#c7c7c7'
+
+        };
+
+
+        Plotly.newPlot("powerChart", data, layout);
+
+      }
+
+
+    });
+
+    function chartMaker(chartDataX, chartDataY, elementID) {
+      //below is Easle.JS work to create charts
+      var stacksDiv = document.getElementById(elementID);
+      var traces = [{
+          x: chartDataX,
+          y: chartDataY,
+          mode: 'lines+markers',
+          line: {shape: 'linear'}, //FIXME: needs to be different for harmonics, use vhv or linear
+          type: 'scatter',
+          name: 'Power'
+        },];
+
+      var layout = {
+        autosize: false,
+        width: 500,
+        height: 500,
+        margin: {
+          l: 50,
+          r: 50,
+          b: 100,
+          t: 100,
+          pad: 4
+        },
+        paper_bgcolor: '#7f7f7f',
+        plot_bgcolor: '#c7c7c7'
+
+      };
+
+      // Plotly.newPlot(stacksDiv, stackedArea(traces), layout);
+      Plotly.newPlot(stacksDiv, traces, layout);
+    }
+
+    function stackedArea(traces) {
+      for (var i = 1; i < traces.length; i++) {
+        for (var j = 0; j < (Math.min(traces[i]['y'].length, traces[i - 1]['y'].length)); j++) {
+          traces[i]['y'][j] += traces[i - 1]['y'][j];
+        }
+      }
+      return traces;
+    }
+
   </script>
 
   </script>
