@@ -466,7 +466,7 @@ io.sockets.on("connection", function(socket) {
     var databaseName = "devicesA1";
     var sql = 'SELECT deviceName FROM ' + databaseName;
     con.query(sql, function (err, devices) {
-      console.log("Sending device data, length: "+ devices.length )
+      // console.log("Sending device data, length: "+ devices.length )
       if (err) throw err;
       for (var i = 0; i < devices.length; i++) {
         if (i === 0) {
@@ -518,7 +518,7 @@ io.sockets.on("connection", function(socket) {
   //updating the data, for display in graphs
   socket.on('updateDisplay', function(data) {
     deviceInfoPush();
-    console.log('change data below');
+    // console.log('change data below');
     measureChange("timeEntryuserA1"); //FIXME, this is just for testing
     var databaseName = "timeEntry" + data.user;
     var date = new Date();
