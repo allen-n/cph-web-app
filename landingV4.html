@@ -11,30 +11,34 @@
   <link rel="icon" href="../../favicon.ico">
 
   <title>CPH Monitoring Page</title>
-
   <!-- Bootstrap core CSS -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
   <!-- Bootstrap theme -->
   <!-- Optional theme -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-  <!-- <link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet"> -->
 
-  <!-- Custom styles for this template -->
-  <link href="theme.css" rel="stylesheet">
-
-  <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
-  <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
-  <!-- <script src="../../assets/js/ie-emulation-modes-warning.js"></script> -->
-
-  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-  <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
 </head>
 
 <body onload="init()">
+
+    <!-- Modal -->
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+        </div>
+        <div class="modal-body">
+          ...
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Fixed navbar -->
   <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -76,12 +80,12 @@
 
     <!-- Main jumbotron for a primary marketing message or call to action -->
     <div class="jumbotron">
-      <h1>Theme example</h1>
-      <p>This is a template showcasing the optional theme stylesheet included in Bootstrap. Use it as a starting point to create something more unique by building on or modifying it.</p>
+      <h1>CyberPowered Home Dashboard</h1>
+      <p>Welcome to Cyberpowered Home's prototype user interface. Scroll over any of the sections below for more information on how to interact with them.</p>
     </div>
 
     <div class="page-header">
-      <h1>Power Consumption</h1>
+        <h1 data-toggle="tooltip" title="View Data on Power consumptuion and frequency spectrum of consumed power across circuits" data-placement="auto" >Power Consumption</h1>
     </div>
     <p>
       <label> View Past: </label>
@@ -142,20 +146,21 @@
     </div>
 
     <div class="page-header" id="Circuit_Controls">
-      <h1>Device Management</h1>
+      <h1 data-toggle="tooltip" title="See and manage your devices" data-placement="auto" >Device Management</h1>
     </div>
     <div class="row">
       <div class="col-md-6">
         <p>
-          <label>Device Name:</label> <input type="text" id="deviceName"/>
-          <button type="button" class="btn btn-sm btn-success">Submit</button>
+          <label data-toggle="tooltip" title="Input the name of the device that was just activated and press submit
+          to add it to the list of classified devices" data-placement="auto" >Device Name:</label> <input type="text" id="deviceName"/>
+          <button type="button" class="btn btn-sm btn-success" onclick="createDevice('2');">Submit</button>
         </p>
       </div>
       <div class="col-md-6">
         <div id="control">
           <p>
             <form method="post" name="setRelay">
-              <labelfor="relay1On">Set Relay 1:</label>
+              <labelfor="relay1On" data-toggle="tooltip" title="Turn the connected circuits and/or devices on or off" data-placement="auto" >Set Relay 1:</label>
               <input type="radio" id="relay1On" name="setRelay1" value="on" checked> Circuit On
               <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off
             </form>
@@ -177,10 +182,12 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Classified Devices</th>
+              <th data-toggle="tooltip" title="Learned devices that are currently active" data-placement="auto" >Active Devices</th>
+              <th> Power Consumption (W) </th>
+              <th> Power Factor </th>
             </tr>
           </thead>
-          <tbody id="devices">
+          <tbody id="successDevices">
           </tbody>
         </table>
       </div>
@@ -188,14 +195,21 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Active Devices</th>
+              <th data-toggle="tooltip" title="Devices the system has learned the signature of" data-placement="auto" >Classified Devices</th>
+              <th> Power Consumption (W) </th>
+              <th> Power Factor </th>
             </tr>
           </thead>
-          <tbody id="successDevices">
+          <tbody id="devices">
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Trigger the modal with a button -->
+    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">
+    Launch demo modal
+    </button>
 
   </div>
   <!-- /container -->
@@ -207,18 +221,20 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
-  <!-- <script>
-    window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')
-  </script> -->
-  <!-- <script src="../../dist/js/bootstrap.min.js"></script> -->
-  <!-- <script src="../../assets/js/docs.min.js"></script> -->
-  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-  <!-- <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script> -->
 
-  <script type="text/javascript">
+
+  <script>
+
+    $(document).ready(function(){
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+
+    $('#myModal').on('shown.bs.modal', function () {
+      $('#myInput').focus()
+    });
 
     function logout(){
       window.location.replace('loginV4.html');
@@ -255,6 +271,9 @@
       }
     }
 
+    socketio.on("refreshDisplay", function(){
+      updateDisplay();
+    });
 
     //update graphs
     function updateDisplay() {
@@ -403,12 +422,11 @@
         // myNode.innerHTML = "Identified devices: ";
       }
       var new_row = myNode.appendChild(document.createElement("tr"));
-
+      // console.log("Data: " + data.deviceName +" "+ data.Pfactor )
       myNode.appendChild(document.createElement("td"));
       new_row.insertCell(0).innerHTML = data.deviceName;
-
-      //appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
-
+      new_row.insertCell(1).innerHTML = data.realP;
+      new_row.insertCell(2).innerHTML = data.Pfactor;
     });
 
     socketio.on("devicesPowered", function(data) {
@@ -417,23 +435,15 @@
         while (myNode.firstChild) {
             myNode.removeChild(myNode.firstChild);
         }
-        // myNode.innerHTML = "Currently Powered Devices: ";
+        // myNode.innerHTML = "Identified devices: ";
       }
-      myNode.appendChild(document.createElement("tr"));
-      myNode.appendChild(document.createElement("td"));
-      myNode.appendChild(document.createTextNode("Device: " + data.deviceName)); // + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
+      var new_row = myNode.appendChild(document.createElement("tr"));
 
+      myNode.appendChild(document.createElement("td"));
+      new_row.insertCell(0).innerHTML = data.deviceName;
+      new_row.insertCell(1).innerHTML = data.realP;
+      new_row.insertCell(2).innerHTML = data.pFactor;
     });
-    //
-    // //creating updated list of "on devices"
-    // socketio.on("successDevicesUpdate", function(data) {
-    //   alert("entered successdevicesUpdate");
-    //   if (data.first === true) {
-    //     document.getElementById("successDevices").innerHTML = "Currently powered devices: ";
-    //   }
-    //   document.getElementById("successDevices").appendChild(document.createElement("br"));
-    //   document.getElementById("successDevices").appendChild(document.createTextNode("Device: " + data.deviceName + " Current: " + data.current + " Voltage: " + data.voltage + " Power: " + data.realP));
-    // });
 
     socketio.on("requestName", function(data) {
       document.getElementById("Circuit_Controls").style.display = "block";
@@ -451,6 +461,10 @@
     var chart1DataY2= [];
     var prevE = 0.0;
 
+    // unrecognized change has been detected, prompt user to input data
+    socketio.on("promptDeviceAdd", function(data) {
+
+    });
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
 

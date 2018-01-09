@@ -147,11 +147,14 @@ function measureChange (databaseName){
       var current = result[0]; //FIXME: may need to reverse if I got the order wrong
       var prev = result[1];
       var diff = {};
+      var diffStr = "";
       for (var key in current){
         if (current.hasOwnProperty(key)) {
           diff[key] = current[key] - prev[key];
+          diffStr += key+" : "+ diff[key];
         }
       }
+      console.log("Diff: " + diffStr);
     }
 
     var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
@@ -162,8 +165,8 @@ function measureChange (databaseName){
       }
     }
     databaseName = "devicesA1";
-    sql = 'SELECT deviceName FROM ' + databaseName + ' WHERE';
-    var hi = 1.05; var lo = .95; // threshold positive/negative of 5%
+    sql = 'SELECT * FROM ' + databaseName + ' WHERE';
+    var hi = 1.10; var lo = 0.90; // threshold positive/negative of 5%
     // so that we aren't comparing on non-comparison keys
     var badKeys = {"event_id":0,"time":0, "text1":0, "text2":0, "text3":0};
 
@@ -174,15 +177,29 @@ function measureChange (databaseName){
       }
     }
     sql = sql.substr(0, sql.lastIndexOf('AND'));
+
+    console.log("Active device query: " + sql)
     con.query(sql, function(err, devices) {
       if (err) throw err;
-      for (var i = 0; i < devices.length; i++) {
-        io.sockets.emit("devicesPowered", {
+      if (devices.length > 0) {
+        for (var i = 0; i < devices.length; i++) {
+          io.sockets.emit("devicesPowered", {
+            user: user,
+            deviceName: devices[i].deviceName,
+            realP: devices[i].realP,
+            pFactor: devices[i].pFactor,
+            error: null
+          });
+        }
+      } else {
+        io.sockets.emit("promptDeviceAdd", {
           user: user,
-          deviceName: devices[i].deviceName,
+          diff: diff,
+          posChange: posChange,
           error: null
         });
       }
+
     });
     // console.log('SQL: ' + sql)
     // io.sockets.emit("changeLogged", {
@@ -231,19 +248,6 @@ io.sockets.on("connection", function(socket) {
 
   });
 
-  //log a submitted change in energy
-  socket.on('logEnergy', function(data) {
-
-    var databaseName = "timeEntry" + data.user;
-    var sql = "INSERT INTO " + databaseName + " (current,voltage,realP) VALUES (" + data.current + ", " + data.voltage + ", " + data.watts + ")";
-    con.query(sql, function(err, result) {
-      if (err) throw err;
-      io.sockets.emit("changeLogged", {
-        user: data.user
-      });
-    });
-  });
-
   //response to creating device
   socket.on('createDevice', function(data) {
     createDevice(data.deviceName, data.user);
@@ -277,6 +281,7 @@ io.sockets.on("connection", function(socket) {
               deviceName: deviceName,
               error: null
             });
+            io.sockets.emit("refreshDisplay");
           });
         } else {
           io.sockets.emit("deviceCreated", {
@@ -317,206 +322,42 @@ io.sockets.on("connection", function(socket) {
 
   });
 
-  //pulling devices for use on client side
-  socket.on('pullDevices', function(data) {
-    //pulls all devices from database and adds to global scope array
-
-    if (firstLoad) {
-      firstLoad = false;
-      readInDevices();
-    } else {
-      incrementalCompare(data.learningModeOn);
-    }
-
-  });
-
-  //displaying previously recorded devices from database
-  function readInDevices() {
-    con.query("SELECT * FROM devices", function(err, result, fields) {
-      if (err) throw err;
-      var tempDevices = [];
-      for (var i = 0; i < result.length; i++) {
-        var device = {
-          deviceName: result[i].text1,
-          current: result[i].current,
-          voltage: result[i].voltage,
-          power: result[i].realP
-        };
-        tempDevices.push(device);
-      }
-      devices = tempDevices;
-
-    });
-    fullReadIN();
-  }
-
-  function incrementalCompare(learningMode) {
-    //pulling all change events
-    var databaseName = "timeEntryuserA1";
-    var sql = "SELECT * FROM " + databaseName;
-    con.query(sql, function(err, result) {
-      if (err) throw err;
-
-      var obCurrent = result[result.length - 1].current - result[result.length - 2].current;
-      var obVoltage = result[result.length - 1].voltage - result[result.length - 2].voltage;
-      var obPower = result[result.length - 1].realP - result[result.length - 2].realP;
-
-      mostRecent = {
-        current: obCurrent,
-        voltage: obVoltage,
-        power: obPower
-      };
-
-      var returned = compareLoadsDevices(mostRecent.current, mostRecent.voltage, mostRecent.realP);
-
-      if ((!returned) && learningMode) {
-        io.sockets.emit("requestName", {
-          requestName: "requestName",
-          mostRecent: mostRecent
-        });
-      }
-
-      deviceInfoPush();
-
-    });
-  }
-
-
-  function fullReadIN() {
-    //pulling all change events
-    var databaseName = "timeEntryuserA1";
-    var sql = "SELECT * FROM " + databaseName;
-    con.query(sql, function(err, result) {
-      if (err) throw err;
-
-      compareLoadsDevices(result[0].current, result[0].voltage, result[0].realP);
-
-      for (var i = 1; i < result.length; i++) {
-
-        compareLoadsDevices((result[i].current - result[i - 1].current), (result[i].realP - result[i - 1].realP), (result[i].reactiveP - result[i - 1].reactiveP));
-
-      }
-      deviceInfoPush();
-
-    });
-  }
-
-
-  //comparing loads to eachother so as to identified loads used in circuit
-  function compareLoadsDevices(current, voltage, power) {
-    //need to add recognition of device removal, (i.e check negatives
-    var currentSuccess = false;
-    var voltageSuccess = false;
-    var powerSuccess = false;
-
-    successDevices = [];
-    var count = 0;
-
-    for (var i = 0; i < devices.length; i++) {
-      if ((devices[i].current > (current * 0.95)) && (devices[i].current < current * 1.05)) {
-        currentSuccess = true;
-        if ((devices[i].voltage > (voltage * 0.95)) && (devices[i].voltage < voltage * 1.05)) {
-          voltageSuccess = true;
-          if ((devices[i].power > (power * 0.95)) && (devices[i].power < power * 1.05)) {
-            powerSuccess = true;
-            count++;
-            device = {
-              deviceName: devices[i].deviceName,
-              current: devices[i].current,
-              voltage: devices[i].voltage,
-              power: devices[i].power,
-              count: count
-            };
-            successDevices.push(device);
-            return true;
-          }
-        }
-      }
-    }
-
-    for (var i = 0; i < successDevices.length; i++) {
-      negCurrent = (successDevices[i].current * -1);
-      negVoltage = (successDevices[i].voltage * -1);
-      negPower = (successDevices[i].power * -1);
-
-      var ncurrentSuccess = false;
-      var nvoltageSuccess = false;
-      var npowerSuccess = false;
-
-
-      if ((negCurrent > (current * 0.95)) && (negCurrent < current * 1.05)) {
-        ncurrentSuccess = true;
-        if ((negVoltage > (voltage * 0.95)) && (negVoltage < voltage * 1.05)) {
-          nvoltageSuccess = true;
-          if ((negPower > (power * 0.95)) && (negPower < power * 1.05)) {
-            npowerSuccess = true;
-            successDevices.splice(i, 1);
-            return true;
-
-          }
-        }
-      }
-    }
-    return false;
-
-  }
-
   //push device info to client side for display
   function deviceInfoPush() {
     var databaseName = "devicesA1";
-    var sql = 'SELECT deviceName FROM ' + databaseName;
+    var sql = 'SELECT * FROM ' + databaseName;
     con.query(sql, function (err, devices) {
       // console.log("Sending device data, length: "+ devices.length )
       if (err) throw err;
       for (var i = 0; i < devices.length; i++) {
+        // console.log(devices[i]);
         if (i === 0) {
           io.sockets.emit("devicesUpdate", {
             deviceName: devices[i].deviceName,
-            // current: devices[i].current,
-            // voltage: devices[i].voltage,
-            // power: devices[i].power,
+            Pfactor: devices[i].Pfactor,
+            realP: devices[i].realP,
             first: true
           });
         } else {
           io.sockets.emit("devicesUpdate", {
             deviceName: devices[i].deviceName,
-            // current: devices[i].current,
-            // voltage: devices[i].voltage,
-            // power: devices[i].power,
+            Pfactor: devices[i].Pfactor,
+            realP: devices[i].realP,
             first: false
           });
         }
       }
     });
 
-    //
-    // for (i = 0; i < successDevices.length; i++) {
-    //   if (i === 0) {
-    //     io.sockets.emit("successDevicesUpdate", {
-    //       deviceName: successDevices[i].deviceName,
-    //       current: successDevices[i].current,
-    //       voltage: successDevices[i].voltage,
-    //       power: successDevices[i].power,
-    //       count: successDevices[i].count,
-    //       first: true
-    //     });
-    //   } else {
-    //     io.sockets.emit("successDevicesUpdate", {
-    //       deviceName: successDevices[i].deviceName,
-    //       current: successDevices[i].current,
-    //       voltage: successDevices[i].voltage,
-    //       power: successDevices[i].power,
-    //       count: successDevices[i].count,
-    //       first: false
-    //     });
-    //   }
-    //
-    // }
 
   }
 
-  //updating the data, for display in graphs
   socket.on('updateDisplay', function(data) {
+    updateServerDisplay(data);
+  });
+
+  //updating the data, for display in graphs
+  function updateServerDisplay(data) {
     deviceInfoPush();
     // console.log('change data below');
     measureChange("timeEntryuserA1"); //FIXME, this is just for testing
@@ -540,91 +381,92 @@ io.sockets.on("connection", function(socket) {
     let win_length = 1;
     sql += " WHERE time >= now() - interval " + win_length;
     if (data.dimension) {
-       sql+= " " + data.dimension;
+      sql += " " + data.dimension;
     } else {
-      sql+= " " + 'year';
+      sql += " " + 'year';
     }
 
     con.query(sql, function(err, result, fields) {
-    if (err) throw err;
-    if (result.length > 0) {
-      // console.log(result[1]);
-      // console.log(result[1].time);
+      if (err) throw err;
+      if (result.length > 0) {
+        // console.log(result[1]);
+        // console.log(result[1].time);
 
-      //The abreviations here may not all be correct, they are guesses.
-      var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
+        //The abreviations here may not all be correct, they are guesses.
+        var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
-      var prevDate, currentDate, prevPower, currentPower = null;
-      var intervalE = 0;
-      for (var i = 0; i < result.length; i++) {
-        currentDate = new Date(result[i].time);
-        currentPower = result[i].realP;
-        if(prevDate && prevPower) {
-          intervalE = (Date.parse(currentDate) - Date.parse(prevDate))*prevPower/(1000); //energy in Joules
-        }
-        intervalE = intervalE/(3600); //energy in Watt-Hours
-        prevDate = currentDate;
-        prevPower = currentPower;
+        var prevDate, currentDate, prevPower, currentPower = null;
+        var intervalE = 0;
+        for (var i = 0; i < result.length; i++) {
+          currentDate = new Date(result[i].time);
+          currentPower = result[i].realP;
+          if (prevDate && prevPower) {
+            intervalE = (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower / (1000); //energy in Joules
+          }
+          intervalE = intervalE / (3600); //energy in Watt-Hours
+          prevDate = currentDate;
+          prevPower = currentPower;
 
-        // console.log("test intervalE: " + intervalE  )
-        var timeString = "" + result[i].time;
-        var timeArray = timeString.split(/[- :]/);
+          // console.log("test intervalE: " + intervalE  )
+          var timeString = "" + result[i].time;
+          var timeArray = timeString.split(/[- :]/);
 
-        var monthC = 0;
-        for (var j = 0; j < monthArr.length; j++) {
-          if (monthArr[j] == timeArray[1]) {
-            // console.log(monthArr[j]);
-            // console.log(timeArray[1]);
-            monthC = j + 1;
+          var monthC = 0;
+          for (var j = 0; j < monthArr.length; j++) {
+            if (monthArr[j] == timeArray[1]) {
+              // console.log(monthArr[j]);
+              // console.log(timeArray[1]);
+              monthC = j + 1;
+            }
+          }
+
+
+          var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
+          // console.log("timeStringF:" + timeStringF);
+          // console.log("result[i].power:" + result[i].realP);
+          var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
+          var frequencies = [0, 60, 120, 180, 240, 300];
+          var clearGraphs = false;
+          if (i == 0 && data.resize) clearGraphs = true;
+          if (i < result.length - 1) {
+            io.sockets.emit("updateResult", {
+              user: data.userName,
+              x: timeStringF,
+              y: result[i].realP,
+              y2: intervalE,
+              xH: frequencies,
+              yH: harmonics,
+              final: false,
+              clearGraphs: clearGraphs,
+            });
+          } else {
+            currentDeviceInfo = result[i];
+            io.sockets.emit("updateResult", {
+              user: data.userName,
+              x: timeStringF,
+              y: result[i].realP,
+              y2: intervalE,
+              xH: frequencies,
+              yH: harmonics,
+              final: true,
+              clearGraphs: false
+            });
           }
         }
-
-
-        var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
-        // console.log("timeStringF:" + timeStringF);
-        // console.log("result[i].power:" + result[i].realP);
-        var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
-        var frequencies = [0, 60, 120, 180, 240, 300];
-        var clearGraphs = false;
-        if (i == 0 && data.resize) clearGraphs = true;
-        if (i < result.length - 1) {
-          io.sockets.emit("updateResult", {
-            user: data.userName,
-            x: timeStringF,
-            y: result[i].realP,
-            y2: intervalE,
-            xH: frequencies,
-            yH: harmonics,
-            final: false,
-            clearGraphs: clearGraphs,
-          });
-        } else {
-          currentDeviceInfo = result[i];
-          io.sockets.emit("updateResult", {
-            user: data.userName,
-            x: timeStringF,
-            y: result[i].realP,
-            y2: intervalE,
-            xH: frequencies,
-            yH: harmonics,
-            final: true,
-            clearGraphs: false
-          });
-        }
+      } else {
+        io.sockets.emit("updateResult", {
+          user: data.userName,
+          x: [],
+          y: [],
+          xH: [],
+          yH: [],
+          final: true,
+          clearGraphs: true
+        });
       }
-    } else {
-      io.sockets.emit("updateResult", {
-        user: data.userName,
-        x: [],
-        y:  [],
-        xH:  [],
-        yH:  [],
-        final: true,
-        clearGraphs: true
-      });
-    }
-  });
+    });
 
-  });
+
+  }
 
 });
