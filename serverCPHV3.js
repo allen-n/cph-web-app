@@ -117,11 +117,12 @@ var particleApp = http.createServer(function(req, res) {
 particleApp.listen(3456);
 
 function storeIncomingData(dataArray, labelArray) {
-  for (i = 0; i < dataArray.length - 1; i++) {
-    // dataArray[i].replace(/[=]/g,"");
-    // dataArray[i].replace(/[C]/g,"");
-    console.log(labelArray[i] + '= ' + dataArray[i]);
-  }
+  // console.log("Incoming data: ")
+  // for (i = 0; i < dataArray.length - 1; i++) {
+  //   // dataArray[i].replace(/[=]/g,"");
+  //   // dataArray[i].replace(/[C]/g,"");
+  //   console.log(labelArray[i] + '= ' + dataArray[i]);
+  // }
   var databaseName = "timeEntryuserA1"; //+data.user;
   var sql = "INSERT INTO " + databaseName +
     " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
@@ -154,7 +155,7 @@ function measureChange (databaseName){
           diffStr += key+" : "+ diff[key];
         }
       }
-      console.log("Diff: " + diffStr);
+      // console.log("Diff: " + diffStr);
     }
 
     var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
@@ -173,12 +174,12 @@ function measureChange (databaseName){
     for (var k in diff) {
       if (diff.hasOwnProperty(k) && !(badKeys.hasOwnProperty(k))) {
         sql += ' ' + k + ' >= ' + (diff[k] * lo).toFixed(2) + ' AND ' +
-        k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND '
+        k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND'
       }
     }
-    sql = sql.substr(0, sql.lastIndexOf('AND'));
+    sql = sql.substr(0, sql.lastIndexOf(' AND'));
 
-    console.log("Active device query: " + sql)
+    // console.log("Active device query: " + sql)
     con.query(sql, function(err, devices) {
       if (err) throw err;
       if (devices.length > 0) {
@@ -188,12 +189,13 @@ function measureChange (databaseName){
             deviceName: devices[i].deviceName,
             realP: devices[i].realP,
             pFactor: devices[i].pFactor,
+            posChange: posChange,
             error: null
           });
         }
       } else {
         io.sockets.emit("promptDeviceAdd", {
-          user: user,
+          user: 'FIXME',
           diff: diff,
           posChange: posChange,
           error: null
@@ -250,18 +252,21 @@ io.sockets.on("connection", function(socket) {
 
   //response to creating device
   socket.on('createDevice', function(data) {
-    createDevice(data.deviceName, data.user);
+    if(data.changePrompt && data.changeData) createDevice(data.deviceName, data.user, data.changePrompt, data.changeData, data.posChange);
+    else createDevice(data.deviceName, data.user);
   });
 
   // response to user input to create new device profile
-  function createDevice(deviceName, user) {
-    if(currentDeviceInfo){
+  function createDevice(deviceName, user, changePrompt = false, changeData = null, posChange = null) {
+    if(currentDeviceInfo ){
       var databaseName = "devicesA1";
       var sql = 'SELECT * FROM ' + databaseName + ' WHERE deviceName = \'' + deviceName + '\'';
       con.query(sql, function(err, result) { //check if the device already exists
         if (err) throw err;
         if(result.length === 0) {
-          let cdi = currentDeviceInfo;
+          let cdi;
+          if(!changePrompt) cdi = currentDeviceInfo;
+          else cdi = changeData;
           sql = "INSERT INTO " + databaseName + " ( current, voltage, Pfactor," +
     " apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6, deviceName) VALUES (" +
     cdi.current + ", " + cdi.voltage + ", " + cdi.Pfactor + ", " + cdi.apparentP + ", " + cdi.realP +
@@ -283,11 +288,18 @@ io.sockets.on("connection", function(socket) {
             });
             io.sockets.emit("refreshDisplay");
           });
+        } else if (changePrompt) {
+          io.sockets.emit("promptDeviceAdd", {
+            user: 'FIXME',
+            diff: changeData,
+            posChange: posChange,
+            error: 'Device name taken, try again.'
+          });
         } else {
           io.sockets.emit("deviceCreated", {
             user: user,
             deviceName: deviceName,
-            error: 'Device name take, try again.'
+            error: 'Device name taken, try again.'
           });
         }
       });
@@ -360,7 +372,7 @@ io.sockets.on("connection", function(socket) {
   function updateServerDisplay(data) {
     deviceInfoPush();
     // console.log('change data below');
-    measureChange("timeEntryuserA1"); //FIXME, this is just for testing
+    // measureChange("timeEntryuserA1"); //FIXME, this is just for testing
     var databaseName = "timeEntry" + data.user;
     var date = new Date();
 

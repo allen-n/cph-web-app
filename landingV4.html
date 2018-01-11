@@ -22,19 +22,39 @@
 <body onload="init()">
 
     <!-- Modal -->
-  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal fade" id="offModal" tabindex="-1" role="dialog" aria-labelledby="offModalLabel">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+          <h4 class="modal-title" id="offModalLabel">Unrecognized Shutoff</h4>
         </div>
         <div class="modal-body">
-          ...
+          An unrecognized device shutoff event has been detected, would you like to store this power signature?
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
+          <button type="button" class="btn btn-default" data-dismiss="modal">No, Close</button>
+          <input type="text" name="offModalInput" id="offModalName" placeholder="Input Unique Name Here">
+          <button type="button" class="btn btn-primary"  id="offModalSave" data-dismiss="modal">Yes, Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="onModal" tabindex="-1" role="dialog" aria-labelledby="onModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="onModalLabel">Unrecognized Turn-On</h4>
+        </div>
+        <div class="modal-body">
+          An unrecognized device turn on event has been detected, would you like to store this power signature?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">No, Close</button>
+          <input type="text" name="onModalInput" id="onModalName" placeholder="Input Unique Name Here">
+          <button type="button" class="btn btn-primary" id="onModalSave" data-dismiss="modal">Yes, Save</button>
         </div>
       </div>
     </div>
@@ -207,7 +227,7 @@
     </div>
 
     <!-- Trigger the modal with a button -->
-    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">
+    <button type="button" class="btn btn-primary btn-lg" onclick="test(false)">
     Launch demo modal
     </button>
 
@@ -232,10 +252,22 @@
       $('[data-toggle="tooltip"]').tooltip();
     });
 
-    $('#myModal').on('shown.bs.modal', function () {
+    $('#offModal').on('shown.bs.modal', function () {
       $('#myInput').focus()
     });
 
+    $('#onModal').on('shown.bs.modal', function () {
+      $('#myInput').focus()
+    });
+
+
+    function test(a){
+      $('#onModal').modal('show');
+      $('#onModalSave').on('click', function(){
+        var deviceName = document.getElementById("onModalName").value;
+        alert(deviceName);
+      });
+    }
     function logout(){
       window.location.replace('loginV4.html');
     }
@@ -379,38 +411,40 @@
     // }
 
     //response to success full logged change
-    socketio.on("changeLogged", function(data) {
-      // alert("change logged"); //FIXME: commented this because it was getting annoying
-      updateDisplay();
-      var learningModeOn = false;
-      if (document.getElementById("learningOn").checked) {
-        learningModeOn = true;
-      }
-      socketio.emit("pullDevices", {
-        user: user,
-        learningModeOn: learningModeOn
-      });
+    // socketio.on("changeLogged", function(data) {
+    //   // alert("change logged"); //FIXME: commented this because it was getting annoying
+    //   updateDisplay();
+    //   var learningModeOn = false;
+    //   if (document.getElementById("learningOn").checked) {
+    //     learningModeOn = true;
+    //   }
+    //   socketio.emit("pullDevices", {
+    //     user: user,
+    //     learningModeOn: learningModeOn
+    //   });
+    //
+    // });
 
-    });
-    //response to device being successfully created
-    socketio.on("deviceCreated", function(data) {
-      if(!(data.error)){
-        alert("device " + data.deviceName + " has been created");
-      } else {
-        alert("Error: " + data.error);
-      }
+    // //response to device being successfully created
+    // socketio.on("deviceCreated", function(data) {
+    //   if(!(data.error)){
+    //     alert("device " + data.deviceName + " has been created");
+    //   } else {
+    //     alert("Error: " + data.error);
+    //   }
+    //
+    //   var learningModeOn = false;
+    //   if (document.getElementById("learningOn").checked) {
+    //     learningModeOn = true;
+    //   }
+    //   socketio.emit("pullDevices", {
+    //     user: user,
+    //     learningModeOn: learningModeOn
+    //   });
+    //
+    //
+    // });
 
-      var learningModeOn = false;
-      if (document.getElementById("learningOn").checked) {
-        learningModeOn = true;
-      }
-      socketio.emit("pullDevices", {
-        user: user,
-        learningModeOn: learningModeOn
-      });
-
-
-    });
     //creating updated list of known devices
     socketio.on("devicesUpdate", function(data) {
       // console.log("Listing " + data.deviceName);
@@ -431,18 +465,31 @@
 
     socketio.on("devicesPowered", function(data) {
       var myNode = document.getElementById("successDevices");
-      if (data.first === true) {
-        while (myNode.firstChild) {
-            myNode.removeChild(myNode.firstChild);
-        }
-        // myNode.innerHTML = "Identified devices: ";
-      }
-      var new_row = myNode.appendChild(document.createElement("tr"));
+      if(data.posChange){
+        var new_row = myNode.appendChild(document.createElement("tr"));
 
-      myNode.appendChild(document.createElement("td"));
-      new_row.insertCell(0).innerHTML = data.deviceName;
-      new_row.insertCell(1).innerHTML = data.realP;
-      new_row.insertCell(2).innerHTML = data.pFactor;
+        myNode.appendChild(document.createElement("td"));
+        new_row.insertCell(0).innerHTML = data.deviceName;
+        new_row.insertCell(1).innerHTML = data.realP;
+        new_row.insertCell(2).innerHTML = data.pFactor;
+      } else {
+        var table = $("#successDevices");
+
+        table.find('tr').each(function (i) {
+            var $tds = $(this).find('td');
+            if ( data.deviceName === $tds.eq(0).text()) {
+              tds.remove()
+            }
+        });
+      }
+
+      // if (data.first === true) {
+      //   while (myNode.firstChild) {
+      //       myNode.removeChild(myNode.firstChild);
+      //   }
+      //   // myNode.innerHTML = "Identified devices: ";
+      // }
+
     });
 
     socketio.on("requestName", function(data) {
@@ -463,8 +510,61 @@
 
     // unrecognized change has been detected, prompt user to input data
     socketio.on("promptDeviceAdd", function(data) {
-
+      var deviceName = "";
+      if(data.error) alert("Error: " + data.error );
+      if(data.posChange){
+        $('#onModal').modal('show');
+        $('#onModalSave').on('click', function(){
+          deviceName = document.getElementById("onModalName").value;
+          alert(deviceName + "now on"); //FIXME - remove
+          promptDeviceAddHelper(deviceName, data);
+        });
+      } else {
+        $('#offModal').modal('show');
+        $('#offModalSave').on('click', function(){
+          deviceName = document.getElementById("offModalName").value;
+          alert(deviceName + "now off"); //FIXME - remove
+          promptDeviceAddHelper(deviceName, data);
+        });
+      }
     });
+
+    function promptDeviceAddHelper(deviceName, data){
+      // data.deviceName, data.user, data.changePrompt, data.changeData
+      if(!(deviceName === "")) {
+        //only add to active devices if it is a positive change
+        if(data.posChange){
+          var myNode = document.getElementById("successDevices");
+          // if (data.first === true) {
+          //   while (myNode.firstChild) {
+          //       myNode.removeChild(myNode.firstChild);
+          //   }
+          //   // myNode.innerHTML = "Identified devices: ";
+          // }
+          var new_row = myNode.appendChild(document.createElement("tr"));
+
+          myNode.appendChild(document.createElement("td"));
+          new_row.insertCell(0).innerHTML = deviceName;
+          new_row.insertCell(1).innerHTML = data.realP;
+          new_row.insertCell(2).innerHTML = data.pFactor;
+        }
+
+
+        socketio.emit("createDevice", {
+          deviceName: deviceName,
+          user: data.user,
+          changePrompt: true,
+          changeData: data.diff,
+          posChange: data.posChange
+        });
+      }
+      // for (var k in data.diff) {
+      //   if (data.diff.hasOwnProperty(k)) {
+      //     console.log(k + " : " + data[k])
+      //   }
+      // }
+    }
+
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {
 
@@ -496,7 +596,7 @@
           x: chart1DataX,
           y: chart1DataY,
           mode: 'lines+markers',
-          line: {shape: 'linear'},
+          line: {shape: 'vh'},
           type: 'scatter',
           name: 'Power (W)'
         };
