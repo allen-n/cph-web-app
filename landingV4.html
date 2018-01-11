@@ -411,19 +411,19 @@
     // }
 
     //response to success full logged change
-    // socketio.on("changeLogged", function(data) {
-    //   // alert("change logged"); //FIXME: commented this because it was getting annoying
-    //   updateDisplay();
-    //   var learningModeOn = false;
-    //   if (document.getElementById("learningOn").checked) {
-    //     learningModeOn = true;
-    //   }
-    //   socketio.emit("pullDevices", {
-    //     user: user,
-    //     learningModeOn: learningModeOn
-    //   });
-    //
-    // });
+    socketio.on("changeLogged", function(data) {
+      // alert("change logged"); //FIXME: commented this because it was getting annoying
+      updateDisplay();
+      // var learningModeOn = false;
+      // if (document.getElementById("learningOn").checked) {
+      //   learningModeOn = true;
+      // }
+      // socketio.emit("pullDevices", {
+      //   user: user,
+      //   learningModeOn: learningModeOn
+      // });
+
+    });
 
     // //response to device being successfully created
     // socketio.on("deviceCreated", function(data) {
@@ -466,13 +466,15 @@
     socketio.on("devicesPowered", function(data) {
       var myNode = document.getElementById("successDevices");
       if(data.posChange){
+        alert(data.deviceName + "turned on");
         var new_row = myNode.appendChild(document.createElement("tr"));
 
         myNode.appendChild(document.createElement("td"));
         new_row.insertCell(0).innerHTML = data.deviceName;
         new_row.insertCell(1).innerHTML = data.realP;
-        new_row.insertCell(2).innerHTML = data.pFactor;
+        new_row.insertCell(2).innerHTML = data.Pfactor;
       } else {
+        alert(data.deviceName + "turned off");
         var table = $("#successDevices");
 
         table.find('tr').each(function (i) {
@@ -516,7 +518,7 @@
         $('#onModal').modal('show');
         $('#onModalSave').on('click', function(){
           deviceName = document.getElementById("onModalName").value;
-          alert(deviceName + "now on"); //FIXME - remove
+          alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
           promptDeviceAddHelper(deviceName, data);
         });
       } else {
@@ -531,6 +533,13 @@
 
     function promptDeviceAddHelper(deviceName, data){
       // data.deviceName, data.user, data.changePrompt, data.changeData
+      var data_diff = data.diff;
+      console.log("device being added:")
+      for (var k in data_diff) {
+        if (data_diff.hasOwnProperty(k)) {
+          console.log(k + " : " + data_diff[k]);
+        }
+      }
       if(!(deviceName === "")) {
         //only add to active devices if it is a positive change
         if(data.posChange){
@@ -545,8 +554,8 @@
 
           myNode.appendChild(document.createElement("td"));
           new_row.insertCell(0).innerHTML = deviceName;
-          new_row.insertCell(1).innerHTML = data.realP;
-          new_row.insertCell(2).innerHTML = data.pFactor;
+          new_row.insertCell(1).innerHTML = data_diff.realP;
+          new_row.insertCell(2).innerHTML = data_diff.Pfactor;
         }
 
 

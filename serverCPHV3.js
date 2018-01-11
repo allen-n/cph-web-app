@@ -123,6 +123,13 @@ function storeIncomingData(dataArray, labelArray) {
   //   // dataArray[i].replace(/[C]/g,"");
   //   console.log(labelArray[i] + '= ' + dataArray[i]);
   // }
+  //FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
+  console.log("Incoming current is: " + dataArray[0]);
+  if (dataArray[0] <= 0.1) {
+    for (var i = 0; i < 12; i++) {
+      dataArray[i] = 0
+    }
+  }
   var databaseName = "timeEntryuserA1"; //+data.user;
   var sql = "INSERT INTO " + databaseName +
     " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
@@ -149,60 +156,74 @@ function measureChange (databaseName){
       var prev = result[1];
       var diff = {};
       var diffStr = "";
+      var atZero = true;
       for (var key in current){
         if (current.hasOwnProperty(key)) {
           diff[key] = current[key] - prev[key];
           diffStr += key+" : "+ diff[key];
+          if(current[key] !== 0 && prev[key] === 0 && atZero) atZero = false;
         }
       }
       // console.log("Diff: " + diffStr);
     }
-
-    var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
-    for (var k2 in diff) {
-      if (diff.hasOwnProperty(k2)) {
-        diff[k2] = Math.abs(diff[k2]);
-        // console.log(k2 + ' : ' + diff[k2])
+    console.log("at zero? " + atZero);
+    if(!atZero){
+      var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
+      for (var k2 in diff) {
+        if (diff.hasOwnProperty(k2)) {
+          diff[k2] = Math.abs(diff[k2]);
+          // console.log(k2 + ' : ' + diff[k2])
+        }
       }
-    }
-    databaseName = "devicesA1";
-    sql = 'SELECT * FROM ' + databaseName + ' WHERE';
-    var hi = 1.10; var lo = 0.90; // threshold positive/negative of 5%
-    // so that we aren't comparing on non-comparison keys
-    var badKeys = {"event_id":0,"time":0, "text1":0, "text2":0, "text3":0};
+      databaseName = "devicesA1";
+      sql = 'SELECT * FROM ' + databaseName + ' WHERE';
+      var hi = 1.10; var lo = 0.90; // threshold positive/negative of 5%
+      // so that we aren't comparing on non-comparison keys
+      var badKeys = {"event_id":0,"time":0, "text1":0, "text2":0, "text3":0};
 
-    for (var k in diff) {
-      if (diff.hasOwnProperty(k) && !(badKeys.hasOwnProperty(k))) {
-        sql += ' ' + k + ' >= ' + (diff[k] * lo).toFixed(2) + ' AND ' +
-        k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND'
+      for (var k in diff) {
+        if (diff.hasOwnProperty(k) && !(badKeys.hasOwnProperty(k))) {
+          sql += ' ' + k + ' >= ' + (diff[k] * lo).toFixed(2) + ' AND ' +
+          k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND'
+        }
       }
-    }
-    sql = sql.substr(0, sql.lastIndexOf(' AND'));
-
-    // console.log("Active device query: " + sql)
-    con.query(sql, function(err, devices) {
-      if (err) throw err;
-      if (devices.length > 0) {
-        for (var i = 0; i < devices.length; i++) {
-          io.sockets.emit("devicesPowered", {
-            user: user,
-            deviceName: devices[i].deviceName,
-            realP: devices[i].realP,
-            pFactor: devices[i].pFactor,
+      sql = sql.substr(0, sql.lastIndexOf(' AND'));
+      console.log("posChange = " + posChange);
+      // console.log("Active device query: " + sql
+      con.query(sql, function(err, devices) {
+        if (err) throw err;
+        console.log("devices.length = " + devices.length);
+        if (devices.length > 0) {
+          for (var i = 0; i < devices.length; i++) {
+            io.sockets.emit("devicesPowered", {
+              user: 'FIXME',
+              deviceName: devices[i].deviceName,
+              realP: devices[i].realP,
+              pFactor: devices[i].pFactor,
+              posChange: posChange,
+              error: null
+            });
+          }
+        } else {
+          io.sockets.emit("promptDeviceAdd", {
+            user: 'FIXME',
+            diff: diff,
             posChange: posChange,
             error: null
           });
         }
-      } else {
-        io.sockets.emit("promptDeviceAdd", {
-          user: 'FIXME',
-          diff: diff,
-          posChange: posChange,
-          error: null
-        });
-      }
 
-    });
+      });
+    } else {
+      io.sockets.emit("devicesPowered", {
+        user: "FIXME",
+        deviceName: "",
+        realP: "",
+        pFactor: "",
+        posChange: "",
+        error: null
+      });
+    }
     // console.log('SQL: ' + sql)
     // io.sockets.emit("changeLogged", {
     //   user: "autoData"
