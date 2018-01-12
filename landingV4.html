@@ -475,14 +475,13 @@
         new_row.insertCell(2).innerHTML = data.Pfactor;
       } else {
         alert(data.deviceName + "turned off");
-        var table = $("#successDevices");
 
-        table.find('tr').each(function (i) {
-            var $tds = $(this).find('td');
-            if ( data.deviceName === $tds.eq(0).text()) {
-              tds.remove()
+        var searchString = data.deviceName;
+        $("#successDevices tr td:contains('" + searchString  + "')").each(function() {
+            if ($(this).text() == searchString) {
+                $(this).parent().remove();
             }
-        });
+        });      
       }
 
       // if (data.first === true) {

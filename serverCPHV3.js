@@ -125,24 +125,36 @@ function storeIncomingData(dataArray, labelArray) {
   // }
   //FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
   console.log("Incoming current is: " + dataArray[0]);
-  if (dataArray[0] <= 0.1) {
+  if (dataArray[0] <= 0.075) {
     for (var i = 0; i < 12; i++) {
       dataArray[i] = 0
     }
   }
   var databaseName = "timeEntryuserA1"; //+data.user;
-  var sql = "INSERT INTO " + databaseName +
-    " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
-    dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
-    ", " + dataArray[4] + ", " + dataArray[5] + ", " + dataArray[6] + ", " + dataArray[7] +
-    ", " + dataArray[8] + ", " + dataArray[9] + ", " + dataArray[10] + ", " + dataArray[11] +")";
-  con.query(sql, function(err, result) {
-    if (err) throw err;
-    io.sockets.emit("changeLogged", {
-      user: "autoData"
-    });
+  var sql = "SELECT * FROM "+ databaseName + " ORDER BY time DESC LIMIT 1";
+  var atZero = false;
+  con.query(sql, function(err1, result1) {
+    if (err1) throw err;
+    console.log("if at zero current should be: " + result1[0].current);
+    let incomingDiff = Math.abs(result1[0].current - dataArray[0])
+    if (!(incomingDiff <= 0.04)){
+      sql = "INSERT INTO " + databaseName +
+        " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
+        dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
+        ", " + dataArray[4] + ", " + dataArray[5] + ", " + dataArray[6] + ", " + dataArray[7] +
+        ", " + dataArray[8] + ", " + dataArray[9] + ", " + dataArray[10] + ", " + dataArray[11] +")";
+      con.query(sql, function(err, result) {
+        if (err) throw err;
+        io.sockets.emit("changeLogged", {
+          user: "autoData"
+        });
+      });
+      measureChange(databaseName);
+    }
   });
-  measureChange(databaseName);
+
+
+
 }
 
 function measureChange (databaseName){
@@ -150,24 +162,23 @@ function measureChange (databaseName){
 
   con.query(sql, function(err, result) {
     if (err) throw err;
-
+    var noChange = false;
     if (result.length === 2) {
       var current = result[0]; //FIXME: may need to reverse if I got the order wrong
       var prev = result[1];
       var diff = {};
       var diffStr = "";
-      var atZero = true;
       for (var key in current){
         if (current.hasOwnProperty(key)) {
           diff[key] = current[key] - prev[key];
           diffStr += key+" : "+ diff[key];
-          if(current[key] !== 0 && prev[key] === 0 && atZero) atZero = false;
         }
       }
-      // console.log("Diff: " + diffStr);
+      // if(diff['current'] <= 0.04) noChange = true;
+      console.log("Diff: " + diffStr);
     }
-    console.log("at zero? " + atZero);
-    if(!atZero){
+    console.log("Had change? " + noChange + " prev at: " + prev.current + " now at: " + current.current);
+    if(!noChange){
       var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
       for (var k2 in diff) {
         if (diff.hasOwnProperty(k2)) {
@@ -177,19 +188,16 @@ function measureChange (databaseName){
       }
       databaseName = "devicesA1";
       sql = 'SELECT * FROM ' + databaseName + ' WHERE';
-      var hi = 1.10; var lo = 0.90; // threshold positive/negative of 5%
-      // so that we aren't comparing on non-comparison keys
-      var badKeys = {"event_id":0,"time":0, "text1":0, "text2":0, "text3":0};
-
+      var lims = {"current":0.07, "Pfactor":0.02, "reactiveP":0.07, "x2":0.02, "x3":0.68, "x4":0.99};
       for (var k in diff) {
-        if (diff.hasOwnProperty(k) && !(badKeys.hasOwnProperty(k))) {
-          sql += ' ' + k + ' >= ' + (diff[k] * lo).toFixed(2) + ' AND ' +
-          k + ' <= ' + (diff[k] * hi).toFixed(2) + ' AND'
+        if (diff.hasOwnProperty(k) && (lims.hasOwnProperty(k))) {
+          sql += ' ' + k + ' >= ' + (diff[k] * (0.9 - lims[k])).toFixed(2) + ' AND ' +
+          k + ' <= ' + (diff[k] * (lims[k] + 1)).toFixed(2) + ' AND'
         }
       }
       sql = sql.substr(0, sql.lastIndexOf(' AND'));
       console.log("posChange = " + posChange);
-      // console.log("Active device query: " + sql
+      console.log("Active device query: " + sql);
       con.query(sql, function(err, devices) {
         if (err) throw err;
         console.log("devices.length = " + devices.length);
@@ -199,7 +207,7 @@ function measureChange (databaseName){
               user: 'FIXME',
               deviceName: devices[i].deviceName,
               realP: devices[i].realP,
-              pFactor: devices[i].pFactor,
+              Pfactor: devices[i].Pfactor,
               posChange: posChange,
               error: null
             });
@@ -219,7 +227,7 @@ function measureChange (databaseName){
         user: "FIXME",
         deviceName: "",
         realP: "",
-        pFactor: "",
+        Pfactor: "",
         posChange: "",
         error: null
       });
