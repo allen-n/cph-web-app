@@ -124,7 +124,7 @@ function storeIncomingData(dataArray, labelArray) {
   //   console.log(labelArray[i] + '= ' + dataArray[i]);
   // }
   //FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
-  console.log("Incoming current is: " + dataArray[0]);
+  // console.log("Incoming current is: " + dataArray[0]);
   if (dataArray[0] <= 0.075) {
     for (var i = 0; i < 12; i++) {
       dataArray[i] = 0
@@ -135,7 +135,7 @@ function storeIncomingData(dataArray, labelArray) {
   var atZero = false;
   con.query(sql, function(err1, result1) {
     if (err1) throw err;
-    console.log("if at zero current should be: " + result1[0].current);
+    // console.log("if at zero current should be: " + result1[0].current);
     let incomingDiff = Math.abs(result1[0].current - dataArray[0])
     if (!(incomingDiff <= 0.04)){
       sql = "INSERT INTO " + databaseName +
@@ -175,9 +175,9 @@ function measureChange (databaseName){
         }
       }
       // if(diff['current'] <= 0.04) noChange = true;
-      console.log("Diff: " + diffStr);
+      // console.log("Diff: " + diffStr);
     }
-    console.log("Had change? " + noChange + " prev at: " + prev.current + " now at: " + current.current);
+    // console.log("Had change? " + noChange + " prev at: " + prev.current + " now at: " + current.current);
     if(!noChange){
       var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
       for (var k2 in diff) {
@@ -196,11 +196,11 @@ function measureChange (databaseName){
         }
       }
       sql = sql.substr(0, sql.lastIndexOf(' AND'));
-      console.log("posChange = " + posChange);
-      console.log("Active device query: " + sql);
+      // console.log("posChange = " + posChange);
+      // console.log("Active device query: " + sql);
       con.query(sql, function(err, devices) {
         if (err) throw err;
-        console.log("devices.length = " + devices.length);
+        // console.log("devices.length = " + devices.length);
         if (devices.length > 0) {
           for (var i = 0; i < devices.length; i++) {
             io.sockets.emit("devicesPowered", {
@@ -318,6 +318,7 @@ io.sockets.on("connection", function(socket) {
             io.sockets.emit("refreshDisplay");
           });
         } else if (changePrompt) {
+          console.log("creating devices with " + changeData.realP + " power")
           io.sockets.emit("promptDeviceAdd", {
             user: 'FIXME',
             diff: changeData,

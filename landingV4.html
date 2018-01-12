@@ -481,7 +481,7 @@
             if ($(this).text() == searchString) {
                 $(this).parent().remove();
             }
-        });      
+        });
       }
 
       // if (data.first === true) {
@@ -517,14 +517,14 @@
         $('#onModal').modal('show');
         $('#onModalSave').on('click', function(){
           deviceName = document.getElementById("onModalName").value;
-          alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
+          // alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
           promptDeviceAddHelper(deviceName, data);
         });
       } else {
         $('#offModal').modal('show');
         $('#offModalSave').on('click', function(){
           deviceName = document.getElementById("offModalName").value;
-          alert(deviceName + "now off"); //FIXME - remove
+          // alert(deviceName + "now off"); //FIXME - remove
           promptDeviceAddHelper(deviceName, data);
         });
       }
@@ -533,7 +533,7 @@
     function promptDeviceAddHelper(deviceName, data){
       // data.deviceName, data.user, data.changePrompt, data.changeData
       var data_diff = data.diff;
-      console.log("device being added:")
+      // console.log("device being added:")
       for (var k in data_diff) {
         if (data_diff.hasOwnProperty(k)) {
           console.log(k + " : " + data_diff[k]);
