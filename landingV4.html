@@ -503,56 +503,63 @@
     var chart1DataY= [];
     var chart1DataY2= [];
     var prevE = 0.0;
+    var inserting = false; //FIXME:prevents additional device add calls when we are in the middle of an add
 
     // unrecognized change has been detected, prompt user to input data
     socketio.on("promptDeviceAdd", function(data) {
       var deviceName = "";
-      if(data.error) alert("Error: " + data.error );
-      if(data.posChange){
-        $('#onModal').modal('show');
-        $('#onModalSave').on('click', function(){
-          deviceName = document.getElementById("onModalName").value;
-          // alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
-          promptDeviceAddHelper(deviceName, data);
-        });
-      } else {
-        $('#offModal').modal('show');
-        $('#offModalSave').on('click', function(){
-          deviceName = document.getElementById("offModalName").value;
-          // alert(deviceName + "now off"); //FIXME - remove
-          promptDeviceAddHelper(deviceName, data);
-        });
+      if(!inserting){
+        if(data.error) alert("Error: " + data.error );
+        if(data.posChange){
+          $('#onModal').modal('show');
+          $('#onModalSave').on('click', function(){
+            inserting = true;
+            deviceName = document.getElementById("onModalName").value;
+            document.getElementById("onModalName").value = "";
+            // alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
+            console.log("adding a device call from on" )
+            promptDeviceAddHelper(deviceName, data);
+          });
+        } else {
+          $('#offModal').modal('show');
+          $('#offModalSave').on('click', function(){
+            inserting = true;
+            deviceName = document.getElementById("offModalName").value;
+            document.getElementById("offModalName").value = "";
+            // alert(deviceName + "now off"); //FIXME - remove
+            console.log("adding a device call from off" )
+            promptDeviceAddHelper(deviceName, data);
+          });
+        }
       }
     });
 
     function promptDeviceAddHelper(deviceName, data){
       // data.deviceName, data.user, data.changePrompt, data.changeData
-      var data_diff = data.diff;
-      // console.log("device being added:")
-      for (var k in data_diff) {
-        if (data_diff.hasOwnProperty(k)) {
-          console.log(k + " : " + data_diff[k]);
-        }
-      }
+      // var data_diff = data.diff;
+      // // console.log("device being added:")
+      // for (var k in data_diff) {
+      //   if (data_diff.hasOwnProperty(k)) {
+      //     console.log(k + " : " + data_diff[k]);
+      //   }
+      // }
       if(!(deviceName === "")) {
-        //only add to active devices if it is a positive change
-        if(data.posChange){
-          var myNode = document.getElementById("successDevices");
-          // if (data.first === true) {
-          //   while (myNode.firstChild) {
-          //       myNode.removeChild(myNode.firstChild);
-          //   }
-          //   // myNode.innerHTML = "Identified devices: ";
-          // }
-          var new_row = myNode.appendChild(document.createElement("tr"));
-
-          myNode.appendChild(document.createElement("td"));
-          new_row.insertCell(0).innerHTML = deviceName;
-          new_row.insertCell(1).innerHTML = data_diff.realP;
-          new_row.insertCell(2).innerHTML = data_diff.Pfactor;
-        }
-
-
+      //   //only add to active devices if it is a positive change
+      //   if(data.posChange){
+      //     var myNode = document.getElementById("successDevices");
+      //     // if (data.first === true) {
+      //     //   while (myNode.firstChild) {
+      //     //       myNode.removeChild(myNode.firstChild);
+      //     //   }
+      //     //   // myNode.innerHTML = "Identified devices: ";
+      //     // }
+      //     var new_row = myNode.appendChild(document.createElement("tr"));
+      //
+      //     myNode.appendChild(document.createElement("td"));
+      //     new_row.insertCell(0).innerHTML = deviceName;
+      //     new_row.insertCell(1).innerHTML = data_diff.realP;
+      //     new_row.insertCell(2).innerHTML = data_diff.Pfactor;
+      //   }
         socketio.emit("createDevice", {
           deviceName: deviceName,
           user: data.user,
@@ -560,13 +567,20 @@
           changeData: data.diff,
           posChange: data.posChange
         });
+        inserting = false;
       }
+
+
       // for (var k in data.diff) {
       //   if (data.diff.hasOwnProperty(k)) {
       //     console.log(k + " : " + data[k])
       //   }
       // }
     }
+
+    socketio.on("deviceCreated", function(data){
+
+    })
 
     //update result return, prepare for graph building
     socketio.on("updateResult", function(data) {

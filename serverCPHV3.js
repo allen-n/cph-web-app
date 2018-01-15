@@ -125,7 +125,7 @@ function storeIncomingData(dataArray, labelArray) {
   // }
   //FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
   // console.log("Incoming current is: " + dataArray[0]);
-  if (dataArray[0] <= 0.075) {
+  if (dataArray[0] <= 0.1) {
     for (var i = 0; i < 12; i++) {
       dataArray[i] = 0
     }
@@ -137,7 +137,7 @@ function storeIncomingData(dataArray, labelArray) {
     if (err1) throw err;
     // console.log("if at zero current should be: " + result1[0].current);
     let incomingDiff = Math.abs(result1[0].current - dataArray[0])
-    if (!(incomingDiff <= 0.04)){
+    if (incomingDiff >= 0.04){
       sql = "INSERT INTO " + databaseName +
         " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
         dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
@@ -282,7 +282,7 @@ io.sockets.on("connection", function(socket) {
   //response to creating device
   socket.on('createDevice', function(data) {
     if(data.changePrompt && data.changeData) createDevice(data.deviceName, data.user, data.changePrompt, data.changeData, data.posChange);
-    else createDevice(data.deviceName, data.user);
+    // else createDevice(data.deviceName, data.user);
   });
 
   // response to user input to create new device profile
@@ -293,9 +293,7 @@ io.sockets.on("connection", function(socket) {
       con.query(sql, function(err, result) { //check if the device already exists
         if (err) throw err;
         if(result.length === 0) {
-          let cdi;
-          if(!changePrompt) cdi = currentDeviceInfo;
-          else cdi = changeData;
+          let cdi = changeData;
           sql = "INSERT INTO " + databaseName + " ( current, voltage, Pfactor," +
     " apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6, deviceName) VALUES (" +
     cdi.current + ", " + cdi.voltage + ", " + cdi.Pfactor + ", " + cdi.apparentP + ", " + cdi.realP +
@@ -310,25 +308,23 @@ io.sockets.on("connection", function(socket) {
 
           con.query(sql, function(err, result) {
             if (err) throw err;
-            io.sockets.emit("deviceCreated", {
-              user: user,
+            console.log("adding " + deviceName)
+            io.sockets.emit("devicesPowered", {
+              user: 'FIXME',
               deviceName: deviceName,
+              realP: changeData.realP,
+              Pfactor: changeData.Pfactor,
+              posChange: posChange,
               error: null
             });
             io.sockets.emit("refreshDisplay");
           });
-        } else if (changePrompt) {
-          console.log("creating devices with " + changeData.realP + " power")
+        } else {
+          console.log("prompting device add from error on " + deviceName)
           io.sockets.emit("promptDeviceAdd", {
             user: 'FIXME',
             diff: changeData,
             posChange: posChange,
-            error: 'Device name taken, try again.'
-          });
-        } else {
-          io.sockets.emit("deviceCreated", {
-            user: user,
-            deviceName: deviceName,
             error: 'Device name taken, try again.'
           });
         }
