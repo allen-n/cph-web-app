@@ -99,11 +99,11 @@
   <div class="container theme-showcase" role="main">
 
     <!-- Main jumbotron for a primary marketing message or call to action -->
-    <div class="jumbotron">
+    <!-- <div class="jumbotron">
       <h1>CyberPowered Home Dashboard</h1>
       <p>Welcome to Cyberpowered Home's prototype user interface. Scroll over any of the sections below for more information on how to interact with them.</p>
-    </div>
-
+    </div> -->
+    <br>
     <div class="page-header">
         <h1 data-toggle="tooltip" title="View Data on Power consumptuion and frequency spectrum of consumed power across circuits" data-placement="auto" >Power Consumption</h1>
     </div>
@@ -180,7 +180,7 @@
         <div id="control">
           <p>
             <form method="post" name="setRelay">
-              <labelfor="relay1On" data-toggle="tooltip" title="Turn the connected circuits and/or devices on or off" data-placement="auto" >Set Relay 1:</label>
+              <labelfor="relay1On" data-toggle="tooltip" title="Turn the connected circuits and/or devices on or off" data-placement="auto" >Living Room Circuit Control:</label>
               <input type="radio" id="relay1On" name="setRelay1" value="on" checked> Circuit On
               <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off
             </form>
@@ -503,46 +503,44 @@
     var chart1DataY= [];
     var chart1DataY2= [];
     var prevE = 0.0;
-    var inserting = false; //FIXME:prevents additional device add calls when we are in the middle of an add
+
 
     // unrecognized change has been detected, prompt user to input data
     socketio.on("promptDeviceAdd", function(data) {
       var deviceName = "";
-      if(!inserting){
-        if(data.error) alert("Error: " + data.error );
-        if(data.posChange){
-          $('#onModal').modal('show');
-          $('#onModalSave').on('click', function(){
-            inserting = true;
-            deviceName = document.getElementById("onModalName").value;
-            document.getElementById("onModalName").value = "";
-            // alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
-            console.log("adding a device call from on" )
-            promptDeviceAddHelper(deviceName, data);
-          });
-        } else {
-          $('#offModal').modal('show');
-          $('#offModalSave').on('click', function(){
-            inserting = true;
-            deviceName = document.getElementById("offModalName").value;
-            document.getElementById("offModalName").value = "";
-            // alert(deviceName + "now off"); //FIXME - remove
-            console.log("adding a device call from off" )
-            promptDeviceAddHelper(deviceName, data);
-          });
-        }
+
+      if(data.error) alert("Error: " + data.error );
+      if(data.posChange){
+        $('#onModal').modal('show');
+        $('#onModalSave').on('click', function(){
+          deviceName = document.getElementById("onModalName").value;
+          document.getElementById("onModalName").value = "";
+          // alert(deviceName + "now on" + "with data length: " + data.length); //FIXME - remove
+          console.log("adding a device call from on" )
+          promptDeviceAddHelper(deviceName, data);
+        });
+      } else {
+        $('#offModal').modal('show');
+        $('#offModalSave').on('click', function(){
+          deviceName = document.getElementById("offModalName").value;
+          document.getElementById("offModalName").value = "";
+          // alert(deviceName + "now off"); //FIXME - remove
+          console.log("adding a device call from off" )
+          promptDeviceAddHelper(deviceName, data);
+        });
       }
+
     });
 
     function promptDeviceAddHelper(deviceName, data){
       // data.deviceName, data.user, data.changePrompt, data.changeData
       // var data_diff = data.diff;
       // // console.log("device being added:")
-      // for (var k in data_diff) {
-      //   if (data_diff.hasOwnProperty(k)) {
-      //     console.log(k + " : " + data_diff[k]);
-      //   }
-      // }
+      for (var k in data_diff) {
+        if (data_diff.hasOwnProperty(k)) {
+          console.log(k + " : " + data_diff[k]);
+        }
+      }
       if(!(deviceName === "")) {
       //   //only add to active devices if it is a positive change
       //   if(data.posChange){
@@ -567,7 +565,6 @@
           changeData: data.diff,
           posChange: data.posChange
         });
-        inserting = false;
       }
 
 

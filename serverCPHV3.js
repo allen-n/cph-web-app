@@ -130,6 +130,7 @@ function storeIncomingData(dataArray, labelArray) {
       dataArray[i] = 0
     }
   }
+  currentDeviceInfo.voltage = dataArray[1];
   var databaseName = "timeEntryuserA1"; //+data.user;
   var sql = "SELECT * FROM "+ databaseName + " ORDER BY time DESC LIMIT 1";
   var atZero = false;
@@ -188,20 +189,31 @@ function measureChange (databaseName){
       }
       databaseName = "devicesA1";
       sql = 'SELECT * FROM ' + databaseName + ' WHERE';
-      var lims = {"current":0.07, "Pfactor":0.02, "reactiveP":0.07, "x2":0.02, "x3":0.68, "x4":0.99};
+      let v = 1;
+      if(currentDeviceInfo.voltage) v = 100 / currentDeviceInfo.voltage;
+      if(v < 1) v = 100 / diff['voltage'];
+      console.log("currentDeviceInfo.voltage @ measureChange = " + currentDeviceInfo.voltage)
+      console.log("diff['voltage'] @ measureChange = " + diff['voltage'])
+      var lims_norm = {"reactiveP":0.07, "x2":0.02, "x3":0.68, "x4":0.99};
+      var lims = {"current":0.07, "Pfactor":0.02}
       for (var k in diff) {
-        if (diff.hasOwnProperty(k) && (lims.hasOwnProperty(k))) {
+        if (diff.hasOwnProperty(k) && (lims_norm.hasOwnProperty(k))) {
+          sql += ' ' + k + ' >= ' + (diff[k] * v * (0.9 - lims_norm[k])).toFixed(2) + ' AND ' +
+          k + ' <= ' + (diff[k] * v * (lims_norm[k] + 1)).toFixed(2) + ' AND'
+        } else if (diff.hasOwnProperty(k) && (lims.hasOwnProperty(k))) {
           sql += ' ' + k + ' >= ' + (diff[k] * (0.9 - lims[k])).toFixed(2) + ' AND ' +
           k + ' <= ' + (diff[k] * (lims[k] + 1)).toFixed(2) + ' AND'
         }
+
       }
       sql = sql.substr(0, sql.lastIndexOf(' AND'));
       // console.log("posChange = " + posChange);
-      // console.log("Active device query: " + sql);
+      console.log("\nActive device query: " + sql + "\n");
       con.query(sql, function(err, devices) {
         if (err) throw err;
         // console.log("devices.length = " + devices.length);
         if (devices.length > 0) {
+          console.log(devices[i].deviceName + " turned on/off " + posChange)
           for (var i = 0; i < devices.length; i++) {
             io.sockets.emit("devicesPowered", {
               user: 'FIXME',
@@ -247,7 +259,7 @@ var devices = [];
 var successDevices = [];
 var firstLoad = true;
 var mostRecent;
-var currentDeviceInfo = null; //holds all database information about current device profile;
+var currentDeviceInfo = {}; //holds all database information about current device profile;
 
 // server interactions with client via socketio
 var io = socketio.listen(app);
@@ -292,13 +304,18 @@ io.sockets.on("connection", function(socket) {
       var sql = 'SELECT * FROM ' + databaseName + ' WHERE deviceName = \'' + deviceName + '\'';
       con.query(sql, function(err, result) { //check if the device already exists
         if (err) throw err;
-        if(result.length === 0) {
+        if (result.length === 0) {
           let cdi = changeData;
+          let v = 1;
+          if(currentDeviceInfo.voltage) v = 100 / currentDeviceInfo.voltage;
+          if(v < 1) v = 100 / cdi.voltage;
+          console.log("currentDeviceInfo.voltage @ createDevice = " + currentDeviceInfo.voltage)
+          console.log("cdi.voltage @ createDevice = " + cdi.voltage)
           sql = "INSERT INTO " + databaseName + " ( current, voltage, Pfactor," +
     " apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6, deviceName) VALUES (" +
-    cdi.current + ", " + cdi.voltage + ", " + cdi.Pfactor + ", " + cdi.apparentP + ", " + cdi.realP +
-    ", " + cdi.reactiveP + ", " + cdi.x1 + ", " + cdi.x2 + ", " + cdi.x3 +
-    ", " + cdi.x4 + ", " + cdi.x5 + ", " + cdi.x6 + ", \'" + deviceName + "\')";
+    cdi.current + ", " + cdi.voltage + ", " + cdi.Pfactor + ", " + cdi.apparentP*v + ", " + cdi.realP*v +
+    ", " + cdi.reactiveP*v + ", " + cdi.x1*v + ", " + cdi.x2*v + ", " + cdi.x3*v +
+    ", " + cdi.x4*v + ", " + cdi.x5*v + ", " + cdi.x6*v + ", \'" + deviceName + "\')";
           // console.log("SQL: " + sql);
           // for (var v in cdi) {
           //   if (cdi.hasOwnProperty(v)) {
@@ -308,7 +325,7 @@ io.sockets.on("connection", function(socket) {
 
           con.query(sql, function(err, result) {
             if (err) throw err;
-            console.log("adding " + deviceName)
+            console.log("adding: "+posChange + " device: " + deviceName)
             io.sockets.emit("devicesPowered", {
               user: 'FIXME',
               deviceName: deviceName,
