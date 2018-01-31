@@ -104,18 +104,13 @@
       <p>Welcome to Cyberpowered Home's prototype user interface. Scroll over any of the sections below for more information on how to interact with them.</p>
     </div> -->
     <br>
-    <div class="page-header">
-        <h1 data-toggle="tooltip" title="View Data on Power consumptuion and frequency spectrum of consumed power across circuits" data-placement="auto" >Power Consumption</h1>
-    </div>
-    <p>
-      <label> View Past: </label>
-      <input type="radio" id="r2" name="display" value="Hour"> Hour
-      <input type="radio" id="r3" name="display" value="Day"> Day
-      <input type="radio" id="r4" name="display" value="Month" > Month
-      <input type="radio" id="r5" name="display" value="Year" checked> Year
-    </p>
+
+
     <div class="row">
       <div class="col-md-6">
+        <div class="page-header">
+            <h1 data-toggle="tooltip" title="View Data on Power consumptuion and frequency spectrum of consumed power across circuits" data-placement="auto" >Power Consumption</h1>
+        </div>
         <table class="table">
           <thead>
             <tr>
@@ -126,10 +121,54 @@
         <div class="powerCharts"  id="powerChart">
 
         </div>
+        <p>
+          <label> View Past: </label>
+          <input type="radio" id="r2" name="display" value="Hour"> Hour
+          <input type="radio" id="r3" name="display" value="Day"> Day
+          <input type="radio" id="r6" name="display" value="Week" > Week
+          <input type="radio" id="r4" name="display" value="Month" > Month
+          <input type="radio" id="r5" name="display" value="Year" checked> Year
+        </p>
       </div>
       <div class="col-md-6">
-        <!-- <div class="col-md-6" id="harmonicsChart">  -->
+        <div class="page-header" id="Circuit_Controls">
+          <h1 data-toggle="tooltip" title="See and manage your devices" data-placement="auto" >Device Management</h1>
+        </div>
+        <div id="control">
+          <p>
+            <form method="post" name="setRelay">
+              <labelfor="relay1On" data-toggle="tooltip" title="Turn the connected circuits and/or devices on or off" data-placement="auto" >Living Room Circuit Control:</label>
+              <input type="radio" id="relay1On" name="setRelay1" value="on" checked> Circuit On
+              <input type="radio" id="relay1Off" name="setRelay1" value="off"> Circuit Off
+            </form>
+          </p>
+        </div>
         <table class="table">
+          <thead>
+            <tr>
+              <th data-toggle="tooltip" title="Learned devices that are currently active" data-placement="auto" >Active Devices</th>
+              <th> Power Consumption (W) </th>
+              <!-- <th> Power Factor </th> -->
+            </tr>
+          </thead>
+          <tbody id="successDevices">
+            <td></td>
+          </tbody>
+        </table>
+        <table class="table">
+          <br>
+          <thead>
+            <tr>
+              <th data-toggle="tooltip" title="Devices the system has learned the signature of" data-placement="auto" >Classified Devices</th>
+              <th> Power Consumption (W) </th>
+              <!-- <th> Power Factor </th> -->
+            </tr>
+          </thead>
+          <tbody id="devices">
+          </tbody>
+        </table>
+          <!-- FIXME -->
+      <!-- <table class="table">
           <thead>
             <tr>
               <th>Harmonics</th>
@@ -161,14 +200,14 @@
           <div class="progress">
             <div class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%" id="h6_bar"> <label id="h6_bar_label">5th Harmonic </label></div>
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
 
-    <div class="page-header" id="Circuit_Controls">
+    <!-- <div class="page-header" id="Circuit_Controls">
       <h1 data-toggle="tooltip" title="See and manage your devices" data-placement="auto" >Device Management</h1>
-    </div>
-    <div class="row">
+    </div> -->
+    <!-- <div class="row">
       <div class="col-md-6">
         <p>
           <label data-toggle="tooltip" title="Input the name of the device that was just activated and press submit
@@ -187,7 +226,7 @@
           </p>
         </div>
       </div>
-    </div>
+    </div> -->
 
 
 
@@ -197,7 +236,7 @@
       <h1>All Devices</h1>
     </div> -->
 
-    <div class="row">
+    <!-- <div class="row">
       <div class="col-md-6">
         <table class="table">
           <thead>
@@ -224,7 +263,7 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </div> -->
 
   </div>
   <!-- /container -->
@@ -317,6 +356,9 @@
       }
       if (document.getElementById('r5').checked) {
         dimension = document.getElementById('r5').value;
+      }
+      if (document.getElementById('r6').checked) {
+        dimension = document.getElementById('r6').value;
       }
       if(user) {
         // alert("Resize Display: " +dimension + " by " + user);
@@ -455,7 +497,7 @@
       myNode.appendChild(document.createElement("td"));
       new_row.insertCell(0).innerHTML = data.deviceName;
       new_row.insertCell(1).innerHTML = data.realP;
-      new_row.insertCell(2).innerHTML = data.Pfactor;
+      // new_row.insertCell(2).innerHTML = data.Pfactor;
     });
 
     socketio.on("devicesPowered", function(data) {
@@ -660,20 +702,20 @@
     function setHarmonicBars(xH, yH){
         // h1_bar
         // <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 100%;" id="h1_bar">
-        var numHarmonics = 6;
-        for (var i = 0; i < numHarmonics; i++) {
-          let id = "h" + (i+1) + "_bar";
-          let hBar = document.getElementById(id);
-          hBar.style = "width: " + yH[i] + "%";
-          // hBar.(aria-valuenow) = yH[i];
-          id = "h" + (i+1) + "_bar_label";
-          hBar = document.getElementById(id);
-          if(hBar) {
-            hBar.removeChild(hBar.firstChild);
-            hBar.appendChild(document.createTextNode(yH[i] + "%"));
-          }
-
-        }
+        // var numHarmonics = 6;
+        // for (var i = 0; i < numHarmonics; i++) {
+        //   let id = "h" + (i+1) + "_bar";
+        //   let hBar = document.getElementById(id);
+        //   hBar.style = "width: " + yH[i] + "%";
+        //   // hBar.(aria-valuenow) = yH[i];
+        //   id = "h" + (i+1) + "_bar_label";
+        //   hBar = document.getElementById(id);
+        //   if(hBar) {
+        //     hBar.removeChild(hBar.firstChild);
+        //     hBar.appendChild(document.createTextNode(yH[i] + "%"));
+        //   }
+        //
+        // }
     }
 
     function chartMaker(chartDataX, chartDataY, elementID) {
