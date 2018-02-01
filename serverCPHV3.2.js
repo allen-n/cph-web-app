@@ -137,7 +137,7 @@ function storeIncomingData(dataArray, labelArray) {
     if (err1) throw err1;
     // console.log("if at zero current should be: " + result1[0].current);
     var incomingDiff;
-    // if(result1[0].current){
+    if(result1[0].current){
       incomingDiff = Math.abs(result1[0].current - dataArray[0])
     } else {
       incomingDiff = 1;
@@ -422,6 +422,7 @@ io.sockets.on("connection", function(socket) {
 
     //FIXME: the sizing error isn't coming from here
     let win_length = 1;
+
     sql += " WHERE time >= now() - interval " + win_length;
     if (data.dimension) {
       sql += " " + data.dimension;
