@@ -421,12 +421,14 @@ io.sockets.on("connection", function(socket) {
 
     //FIXME: the sizing error isn't coming from here
     let win_length = 1;
+    if(data.win_length) win_length = data.win_length;
     sql += " WHERE time >= now() - interval " + win_length;
     if (data.dimension) {
       sql += " " + data.dimension;
     } else {
       sql += " " + 'year';
     }
+    
 
     con.query(sql, function(err, result, fields) {
       if (err) throw err;

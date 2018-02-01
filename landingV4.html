@@ -345,6 +345,7 @@
     function updateDisplay() {
       // console.log("Display updated")
       var dimension;
+      var win_length;
       if (document.getElementById('r2').checked) {
         dimension = document.getElementById('r2').value;
       }
@@ -358,13 +359,15 @@
         dimension = document.getElementById('r5').value;
       }
       if (document.getElementById('r6').checked) {
-        dimension = document.getElementById('r6').value;
+        dimension = 'DAY';
+        win_length = 7;
       }
       if(user) {
         // alert("Resize Display: " +dimension + " by " + user);
         socketio.emit("updateDisplay", {
           user: user,
           dimension: dimension,
+          win_length: win_length,
           resize: true
         });
       }
@@ -433,7 +436,7 @@
     }
 
     // view radio buttons
-    for (var i = 2; i < 6; i++) {
+    for (var i = 2; i < 7; i++) {
       document.getElementById("r"+i).onclick = function() {
           updateDisplay();
       }
@@ -545,6 +548,7 @@
     var chart1DataY= [];
     var chart1DataY2= [];
     var prevE = 0.0;
+    cost_mult = 0.00012;
 
 
     // unrecognized change has been detected, prompt user to input data
@@ -634,7 +638,7 @@
       chart1DataX.push(data.x);
       chart1DataY.push(data.y);
 
-      chart1DataY2.push(parseFloat(data.y2) + (prevE));
+      chart1DataY2.push((parseFloat(data.y2) + (prevE))*cost_mult);
       prevE += parseFloat(data.y2);
 
 
@@ -661,9 +665,9 @@
           y: chart1DataY2,
           yaxis:'y2',
           mode: 'lines+markers',
-          line: {shape: 'vh'},
+          line: {shape: 'linear'}, //{shape: 'vh'},
           type: 'scatter',
-          name: 'Energy (W-h)'
+          name: 'Cost (USD)'
         };
 
         var data = [trace1, trace2];
@@ -681,13 +685,18 @@
           },
           yaxis: {title: 'Power (Watts)'},
          yaxis2: {
-           title: 'Energy (Watt-Hours)',
+           title: 'Total Cost (USD)',
            overlaying: 'y',
            side: 'right'
          },
          legend: {x:0.5,y:-0.5},
           paper_bgcolor: '#7f7f7f',
-          plot_bgcolor: '#c7c7c7'
+          plot_bgcolor: '#c7c7c7',
+          font: {
+             family: 'Arial',
+             size: 14,
+             color: 'black'
+           }
 
         };
 
