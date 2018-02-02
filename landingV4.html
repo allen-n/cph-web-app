@@ -21,7 +21,10 @@
 
 <body onload="init()">
 
+
     <!-- Modal -->
+    <!-- FIXME: modal turned off -->
+    <!--
   <div class="modal fade" id="offModal" tabindex="-1" role="dialog" aria-labelledby="offModalLabel">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -39,8 +42,9 @@
         </div>
       </div>
     </div>
-  </div>
-
+  </div> -->
+<!-- FIXME: modal turned off -->
+<!--
   <div class="modal fade" id="onModal" tabindex="-1" role="dialog" aria-labelledby="onModalLabel">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -58,7 +62,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 
   <!-- Fixed navbar -->
   <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -656,7 +660,7 @@
           x: chart1DataX,
           y: chart1DataY,
           mode: 'lines+markers',
-          line: {shape: 'vh'},
+          line: {shape: 'hv'}, //was vh, trying hv
           type: 'scatter',
           name: 'Power (W)'
         };

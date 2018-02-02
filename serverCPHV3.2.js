@@ -1,6 +1,8 @@
 #!/usr/bin/env nodejs
-//FIXME: maybe the line above will fix the node modules thing?
-var http = require('http');
+
+var http = require('http'); //Required for 'serving' webpages the way we currently are
+
+// The POST header seen on data being sent from our Particle microcontroller
 var postHTML =
   '<html><head><title>CyberPowered-Home-Prototype</title></head>' +
   '<body>' +
@@ -8,11 +10,13 @@ var postHTML =
   '<ul class="dataList"> </ul>' +
   '</body></html>';
 
-
+// Code below is all for linking to the Particle microcontroller
 var Particle = require('particle-api-js');
 var particle = new Particle();
 var token;
 
+// Allen will find a way to avoid having this data hardcoded into the server
+// code, for now this can be ignored
 var usr = 'allennikka@gmail.com';
 var pass = 'atoughparticlepass123'; //FIXME: put actual login form!!
 
@@ -34,12 +38,10 @@ var http = require("http"),
   url = require('url');
 
 
-// Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html:
+// Listen for HTTP connections.
+// Creating a mini static file server serving our faux sign-in page, and our current landing page (landingV4.html)
 var app = http.createServer(function(req, resp) {
-  // This callback runs when a new connection is made to our HTTP server.
-  // fs.readFile("files/LandingV3.html", function(err, data) {
-
-  var pathname = url.parse(req.url).pathname;
+  var pathname = url.parse(req.url).pathname; // parse path based on URL
   switch (pathname) {
     case '/signinV4.html':
       break;
@@ -51,9 +53,9 @@ var app = http.createServer(function(req, resp) {
       pathname = '/signinV4.html';
       break;
   }
-  // console.log(pathname)
+  // serve the file according to above pathname
   fs.readFile("files"+ pathname, function(err, data) {
-  // This callback runs when the client.html file has been read from the filesystem.
+
 
 
   if (err) return resp.writeHead(500);
@@ -68,7 +70,8 @@ app.listen(3454);
 
 
 
-//create SQL database connection
+// create SQL database connection to CPH database, ideally we don't have these
+// passwords etc. hard coded into our web server code
 var con = mysql.createConnection({
   host: "localhost",
   user: "CPH",
@@ -81,7 +84,6 @@ con.connect(function(err) {
 });
 
 
-//recieving data from particle
 var particleApp = http.createServer(function(req, res) {
   var body = "";
   req.on('data', function(chunk) {
@@ -404,7 +406,7 @@ io.sockets.on("connection", function(socket) {
     deviceInfoPush();
     // console.log('change data below');
     // measureChange("timeEntryUserA2"); //FIXME, this is just for testing
-    var databaseName = "timeEntry" + data.user;
+    var databaseName = "timeEntryuserA2";
     var date = new Date();
 
     var year = "" + date.getFullYear();

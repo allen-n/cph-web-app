@@ -1,6 +1,8 @@
 #!/usr/bin/env nodejs
-//FIXME: maybe the line above will fix the node modules thing?
-var http = require('http');
+
+var http = require('http'); //Required for 'serving' webpages the way we currently are
+
+// The POST header seen on data being sent from our Particle microcontroller
 var postHTML =
   '<html><head><title>CyberPowered-Home-Prototype</title></head>' +
   '<body>' +
@@ -8,11 +10,13 @@ var postHTML =
   '<ul class="dataList"> </ul>' +
   '</body></html>';
 
-
+// Code below is all for linking to the Particle microcontroller
 var Particle = require('particle-api-js');
 var particle = new Particle();
 var token;
 
+// Allen will find a way to avoid having this data hardcoded into the server
+// code, for now this can be ignored
 var usr = 'allennikka@gmail.com';
 var pass = 'atoughparticlepass123'; //FIXME: put actual login form!!
 
@@ -34,12 +38,10 @@ var http = require("http"),
   url = require('url');
 
 
-// Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html:
+// Listen for HTTP connections.
+// Creating a mini static file server serving our faux sign-in page, and our current landing page (landingV4.html)
 var app = http.createServer(function(req, resp) {
-  // This callback runs when a new connection is made to our HTTP server.
-  // fs.readFile("files/LandingV3.html", function(err, data) {
-
-  var pathname = url.parse(req.url).pathname;
+  var pathname = url.parse(req.url).pathname; // parse path based on URL
   switch (pathname) {
     case '/signinV4.html':
       break;
@@ -51,9 +53,9 @@ var app = http.createServer(function(req, resp) {
       pathname = '/signinV4.html';
       break;
   }
-  // console.log(pathname)
+  // serve the file according to above pathname
   fs.readFile("files"+ pathname, function(err, data) {
-  // This callback runs when the client.html file has been read from the filesystem.
+
 
 
   if (err) return resp.writeHead(500);
@@ -63,13 +65,16 @@ var app = http.createServer(function(req, resp) {
 
 
 });
-app.listen(4567);
-// app.listen(app.get('port'));
+app.listen(3454);
 
 
 
-//create SQL database connection
+
 var con = mysql.createConnection({
+  // create SQL database connection to CPH database, ideally we don't have these
+  // passwords etc. hard coded into our web server code
+  // TODO: This needs to be modified to only connect to the specific user in question's
+  // sub-tables of data
   host: "localhost",
   user: "CPH",
   password: "secretSAUCE",
@@ -81,26 +86,22 @@ con.connect(function(err) {
 });
 
 
-//recieving data from particle
 var particleApp = http.createServer(function(req, res) {
+  // listen on socket 3456 for data from Particle Photon microcontroller
   var body = "";
   req.on('data', function(chunk) {
     body += chunk;
   });
   req.on('end', function() {
     var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
-    if (patt.test(body)) {
-      // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
+    if (patt.test(body)) { // reg-ex matching to parse event data
+
       var dataArray = body.match(/[0-9]*[.][0-9]*/g);
       var labelArray = ["current", "voltage", "power factor",
         "apparent power", "real power", "reactive power", "h1",
         "h2", "h3", "h4", "h5", "h6", "error"
       ];
-      // for (i = 0; i < dataArray.length - 1; i++) {
-      //   // dataArray[i].replace(/[=]/g,"");
-      //   // dataArray[i].replace(/[C]/g,"");
-      //   console.log(labelArray[i] + '= ' + dataArray[i]);
-      // }
+
       var dateStamp = body.match(/[0-9]{4}[-][0-9]{2}[-][0-9]{2}/);
       var timeStamp = body.match(/[0-9]{2}%3A[0-9]{2}%3A[0-9]{2}/);
       var newTimeStamp = timeStamp[0].replace(/%3A/g, ":");
@@ -116,14 +117,13 @@ var particleApp = http.createServer(function(req, res) {
 });
 particleApp.listen(3456);
 
-function storeIncomingData(dataArray, labelArray) {
-  // console.log("Incoming data: ")
-  // for (i = 0; i < dataArray.length - 1; i++) {
-  //   // dataArray[i].replace(/[=]/g,"");
-  //   // dataArray[i].replace(/[C]/g,"");
-  //   console.log(labelArray[i] + '= ' + dataArray[i]);
-  // }
-  //FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
+
+function storeIncomingData (dataArray, labelArray) {
+  // store incoming data in our SQL database
+  // TODO: this function needs to be reword to store into
+  // an individual user's database, not our general database
+
+  // FIXME: don't log readings of less than 100 mA, need to up sensitivity of hardware
   // console.log("Incoming current is: " + dataArray[0]);
   if (dataArray[0] <= 0.1) {
     for (var i = 0; i < 12; i++) {
@@ -136,11 +136,12 @@ function storeIncomingData(dataArray, labelArray) {
   con.query(sql, function(err1, result1) {
     if (err1) throw err1;
     // console.log("if at zero current should be: " + result1[0].current);
-    if(result1.current){
+    if (result1.current){
       incomingDiff = Math.abs(result1[0].current - dataArray[0])
     } else {
-      incomingDiff = 1;
+      incomingDiff = 1; //handles the case where this is the first datapoint being recorded
     }
+    // if difference is larger than 40 mA, log the new datapoint into the database
     if (incomingDiff >= 0.04){
       sql = "INSERT INTO " + databaseName +
         " (current, voltage, Pfactor, apparentP, realP, reactiveP, x1, x2, x3, x4, x5, x6) VALUES (" +
@@ -162,6 +163,9 @@ function storeIncomingData(dataArray, labelArray) {
 }
 
 function measureChange (databaseName){
+  // function to measure the difference between the new datapoint
+  // and the previous one in order to determine what turned on/off
+  // TODO: database fix - generalize to work for a specific user
   var sql = "SELECT * FROM "+ databaseName + " ORDER BY event_id DESC LIMIT 2";
 
   con.query(sql, function(err, result) {
@@ -171,19 +175,17 @@ function measureChange (databaseName){
       var current = result[0]; //FIXME: may need to reverse if I got the order wrong
       var prev = result[1];
       var diff = {};
-      var diffStr = "";
+      var diffStr = ""; // for troubleshooting
       for (var key in current){
         if (current.hasOwnProperty(key)) {
           diff[key] = current[key] - prev[key];
-          diffStr += key+" : "+ diff[key];
+          diffStr += key+" : "+ diff[key]; // for troubleshooting
         }
       }
-      // if(diff['current'] <= 0.04) noChange = true;
-      // console.log("Diff: " + diffStr);
     }
-    // console.log("Had change? " + noChange + " prev at: " + prev.current + " now at: " + current.current);
-    if(!noChange){
-      var posChange = diff.apparentP > 0; //FIXME: for determing whether device turned on or off
+
+    if(!noChange){ // no longer using this variable
+      var posChange = diff.apparentP > 0; // for determing whether device turned on or off
       for (var k2 in diff) {
         if (diff.hasOwnProperty(k2)) {
           diff[k2] = Math.abs(diff[k2]);
@@ -191,6 +193,10 @@ function measureChange (databaseName){
         }
       }
       databaseName = "devicesA1";
+      // TODO: code for selecting active devices, basically selects around a range of
+      // the values the device was previously seen at, works well for linear
+      // power supply loads, but for switch mode power supplies like
+      // labtop chargers it will need to be reworked
       sql = 'SELECT * FROM ' + databaseName + ' WHERE';
       var lims = {"current":0.07, "Pfactor":0.02, "reactiveP":0.07, "x2":0.02, "x3":0.68, "x4":0.99};
       for (var k in diff) {
@@ -257,7 +263,7 @@ var currentDeviceInfo = null; //holds all database information about current dev
 var io = socketio.listen(app);
 io.sockets.on("connection", function(socket) {
 
-  //check if registered user
+  // TODO: user logon, will need to be reworked
   socket.on('login_attempt', function(data) {
 
     con.query("SELECT * FROM users", function(err, result, fields) {
@@ -283,14 +289,22 @@ io.sockets.on("connection", function(socket) {
 
   });
 
-  //response to creating device
+  // NOTE: The code below has a lot of redudancies and inefficinecies, I can remove them before you
+  // begin or you can take a stab at complete rewrite if that suits you better,
+  // I will explain what each does below the function headers
+
   socket.on('createDevice', function(data) {
+    // Called when a user submits code to create a device on the 'create device'
+    // pop up modal
     if(data.changePrompt && data.changeData) createDevice(data.deviceName, data.user, data.changePrompt, data.changeData, data.posChange);
     // else createDevice(data.deviceName, data.user);
   });
 
   // response to user input to create new device profile
   function createDevice(deviceName, user, changePrompt = false, changeData = null, posChange = null) {
+    // server side code for inserting newly created device profile into database
+    // TODO: need to update database inser tto specific user's database`
+
     if(currentDeviceInfo ){
       var databaseName = "devicesA1";
       var sql = 'SELECT * FROM ' + databaseName + ' WHERE deviceName = \'' + deviceName + '\'';
@@ -344,7 +358,9 @@ io.sockets.on("connection", function(socket) {
 
   //response to user input on relay (circuit) control
   socket.on('setRelay', function(data) {
-
+    // Called when user modifies the 'set rlay' radio button to turn the
+    // 'circuit' on or off, you can mostly leave this alone, I'll have
+    // to modiy it by changing how I handle the hardware interaction
     var publishEventPr = particle.publishEvent({
       name: data.name,
       data: data.data,
@@ -364,8 +380,8 @@ io.sockets.on("connection", function(socket) {
 
   });
 
-  //push device info to client side for display
   function deviceInfoPush() {
+    // push active device info to client side for display
     var databaseName = "devicesA1";
     var sql = 'SELECT * FROM ' + databaseName;
     con.query(sql, function (err, devices) {
@@ -395,13 +411,15 @@ io.sockets.on("connection", function(socket) {
   }
 
   socket.on('updateDisplay', function(data) {
+    // Listens for calls from landing page to update its display with new data
     updateServerDisplay(data);
   });
 
-  //updating the data, for display in graphs
   function updateServerDisplay(data) {
+    // updates landing page data in graphs and on/on device tabs
+    // TODO: Fix database access for general user
     deviceInfoPush();
-    // console.log('change data below');
+
     // measureChange("timeEntryuserA1"); //FIXME, this is just for testing
     var databaseName = "timeEntry" + data.user;
     var date = new Date();
@@ -419,7 +437,6 @@ io.sockets.on("connection", function(socket) {
     // console.log("dimension is: "+data.dimension);
     sql = "SELECT * FROM " + databaseName;
 
-    //FIXME: the sizing error isn't coming from here
     let win_length = 1;
     if(data.win_length) win_length = data.win_length;
     sql += " WHERE time >= now() - interval " + win_length;
@@ -428,15 +445,13 @@ io.sockets.on("connection", function(socket) {
     } else {
       sql += " " + 'year';
     }
-    
+
 
     con.query(sql, function(err, result, fields) {
       if (err) throw err;
       if (result.length > 0) {
         // console.log(result[1]);
         // console.log(result[1].time);
-
-        //The abreviations here may not all be correct, they are guesses.
         var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
         var prevDate, currentDate, prevPower, currentPower = null;
