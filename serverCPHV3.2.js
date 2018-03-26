@@ -411,7 +411,7 @@ io.sockets.on("connection", function(socket) {
     });
 
     // object to store previous datapoints:
-    
+
     //updating the data, for display in graphs
     function updateServerDisplay(data) {
         deviceInfoPush();
@@ -449,7 +449,7 @@ io.sockets.on("connection", function(socket) {
                 // console.log(result[1]);
                 // console.log(result[1].time);
                 parseDataPoints(result, data);
-                
+
 
             } else {
                 io.sockets.emit("updateResult", {
@@ -466,24 +466,48 @@ io.sockets.on("connection", function(socket) {
     }
 });
 
-var maxSteps = 500;
+var maxSteps = 1500;
+
 function parseDataPoints(result, data) {
     //The abreviations here may not all be correct, they are guesses.
     var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
-    var prevDate, currentDate, prevPower, currentPower = null;
-    var intervalE = 0;
-    var stepSize = result.length/maxSteps;
-    for (var i = 0; i < result.length; i++) {
-        currentDate = new Date(result[i].time);
-        currentPower = result[i].realP;
-        if (prevDate && prevPower) {
-            intervalE = (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower / (1000); //energy in Joules
-        }
-        intervalE = intervalE / (3600); //energy in Watt-Hours
-        prevDate = currentDate;
-        prevPower = currentPower;
 
+    var stepSize = Math.ceil(result.length / maxSteps);
+    var intervalE = 0;
+    var prevDate, currentDate, prevPower, currentPower, totalPower = null;
+
+    for (var i = 0; i < result.length; i += stepSize) {
+        totalPower = 0;
+        var stopPoint = i + stepSize;
+        if (i + stepSize > result.length) {
+            stopPoint = result.length;
+        }
+
+        // let tempE = 0;
+        for (var k = i; k < stopPoint; k++) {
+            currentDate = new Date(result[k].time);
+            currentPower = result[k].realP;
+            totalPower += currentPower;
+            if (k > 0) {
+                prevPower = result[k - 1].realP;
+                prevDate = new Date(result[k - 1].time);
+                intervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower / (1000 * 3600); //energy in w-h, extra 100    
+                if (prevPower == 0) {
+                    console.log("IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
+                }
+            }
+            
+            // if (prevPower == 0) {
+            // 	console.log("outside zero");
+            // }
+            // if (prevDate && prevPower) {
+                
+            // }
+            // intervalE = intervalE / (3600); //energy in Watt-Hours            
+        }
+        // intervalE += tempE / (stopPoint - i);
+        totalPower = totalPower / (stopPoint - i);
         // console.log("test intervalE: " + intervalE  )
         var timeString = "" + result[i].time;
         var timeArray = timeString.split(/[- :]/);
@@ -504,12 +528,13 @@ function parseDataPoints(result, data) {
         var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
         var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;
+
         if (i == 0 && data.resize) clearGraphs = true;
-        if (i < result.length - 1) {
+        if (i < result.length - stepSize) {
             io.sockets.emit("updateResult", {
                 user: data.userName,
                 x: timeStringF,
-                y: result[i].realP,
+                y: totalPower,
                 y2: intervalE,
                 xH: frequencies,
                 yH: harmonics,
@@ -521,7 +546,7 @@ function parseDataPoints(result, data) {
             io.sockets.emit("updateResult", {
                 user: data.userName,
                 x: timeStringF,
-                y: result[i].realP,
+                y: totalPower,
                 y2: intervalE,
                 xH: frequencies,
                 yH: harmonics,
