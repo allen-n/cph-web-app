@@ -433,15 +433,19 @@ io.sockets.on("connection", function(socket) {
         // console.log("dimension is: "+data.dimension);
         sql = "SELECT * FROM " + databaseName;
 
-        //FIXME: the sizing error isn't coming from here
-        let win_length = 1;
-
+        let win_length;
+    	if (data.win_length) {
+    		win_length = data.win_length;
+    	} else {
+    		win_length = 1;
+    	}
         sql += " WHERE time >= now() - interval " + win_length;
         if (data.dimension) {
             sql += " " + data.dimension;
         } else {
             sql += " " + 'year';
         }
+
 
         con.query(sql, function(err, result, fields) {
             if (err) throw err;
@@ -472,10 +476,10 @@ function parseDataPoints(result, data) {
     //The abreviations here may not all be correct, they are guesses.
     var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
-
+    if(data.numSteps) maxSteps = data.numSteps; //get max number of datapoints to display
     var stepSize = Math.ceil(result.length / maxSteps);
     var intervalE = 0;
-    var prevDate, currentDate, prevPower, currentPower, totalPower = null;
+    var totalPower = null;
 
     for (var i = 0; i < result.length; i += stepSize) {
         totalPower = 0;
@@ -484,7 +488,7 @@ function parseDataPoints(result, data) {
             stopPoint = result.length;
         }
 
-        // let tempE = 0;
+        var prevDate, currentDate, prevPower, currentPower, preIntervalE = null;
         for (var k = i; k < stopPoint; k++) {
             currentDate = new Date(result[k].time);
             currentPower = result[k].realP;
@@ -492,21 +496,15 @@ function parseDataPoints(result, data) {
             if (k > 0) {
                 prevPower = result[k - 1].realP;
                 prevDate = new Date(result[k - 1].time);
-                intervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower / (1000 * 3600); //energy in w-h, extra 100    
+                preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
                 if (prevPower == 0) {
-                    console.log("IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
+
                 }
             }
-            
-            // if (prevPower == 0) {
-            // 	console.log("outside zero");
-            // }
-            // if (prevDate && prevPower) {
-                
-            // }
-            // intervalE = intervalE / (3600); //energy in Watt-Hours            
         }
+        intervalE = preIntervalE / (1000*3600); //energy in Watt-Hours
         // intervalE += tempE / (stopPoint - i);
+        // console.log(k + ": IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
         totalPower = totalPower / (stopPoint - i);
         // console.log("test intervalE: " + intervalE  )
         var timeString = "" + result[i].time;

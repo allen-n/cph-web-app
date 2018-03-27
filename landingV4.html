@@ -127,11 +127,19 @@
         </div>
         <p>
           <label> View Past: </label>
-          <input type="radio" id="r2" name="display" value="Hour"> Hour
-          <input type="radio" id="r3" name="display" value="Day"> Day
-          <input type="radio" id="r6" name="display" value="Week" > Week
-          <input type="radio" id="r4" name="display" value="Month" > Month
-          <input type="radio" id="r5" name="display" value="Year" checked> Year
+          <input type="number" id="r0" name="win_length" placeholder="Number of..." onchange="updateDisplay()" size="autosize" value="1">
+        </p>
+        <p>
+          <input type="radio" id="r2" name="display" value="Hour"> Hour(s)
+          <input type="radio" id="r3" name="display" value="Day"> Day(s)
+          <input type="radio" id="r6" name="display" value="Week" > Week(s)
+          <input type="radio" id="r4" name="display" value="Month" > Month(s)
+          <input type="radio" id="r5" name="display" value="Year" checked> Year(s)
+        </p>
+        <p>
+          <label>Input number of datapoints to display, more increases load time of page.
+            <input type="number" name="StepNumber" id="numSteps" value="1500" onchange="updateDisplay()" size="autosize">
+          </label>
         </p>
       </div>
       <div class="col-md-6">
@@ -349,7 +357,9 @@
     function updateDisplay() {
       // console.log("Display updated")
       var dimension;
-      var win_length;
+      var win_length = document.getElementById('r0').value;
+      var numSteps = document.getElementById('numSteps').value;
+      if(isNaN(win_length)) win_length = 1;
       if (document.getElementById('r2').checked) {
         dimension = document.getElementById('r2').value;
       }
@@ -363,8 +373,8 @@
         dimension = document.getElementById('r5').value;
       }
       if (document.getElementById('r6').checked) {
-        dimension = 'DAY';
-        win_length = 7;
+        dimension = 'Day';
+        win_length *= 7;
       }
       if(user) {
         // alert("Resize Display: " +dimension + " by " + user);
@@ -372,6 +382,7 @@
           user: user,
           dimension: dimension,
           win_length: win_length,
+          numSteps:numSteps,
           resize: true
         });
       }
@@ -445,6 +456,13 @@
           updateDisplay();
       }
     }
+
+    // document.getElementById("r0").onchange() = function() {
+    //       updateDisplay();
+    // }
+    // document.getElementById("numSteps").onchange() = function() {
+    //       updateDisplay();
+    // }
     //
     // function emitDisplay(element) {
     //
