@@ -486,15 +486,14 @@ function parseDataPoints(result, data) {
     while (i < result.length) {
         // console.log("in loop 1, i is: " + i);
         totalPower = 0;
-        var prevDate, currentDate, prevPower, currentPower, preIntervalE, initDate = null;
+        var prevDate, prevPower, currentPower, preIntervalE = null;
         var k = i;
         var denom = 0;
-        initDate = new Date(result[k].time);
-        // currentDate = new Date(result[k].time);
+        var initDate = new Date(result[k].time);
+        var currentDate = initDate;
         // for (var k = i; k < stopPoint; k++) {
         while ((Date.parse(currentDate) - Date.parse(initDate)) < maxSteps && k < result.length) {
-            // console.log('in loop 2, i is: ' + i);
-            i = k;
+            // console.log('in loop 2, k is: ' + k + " / " + result.length);
             currentDate = new Date(result[k].time);
             currentPower = result[k].realP;
             totalPower += currentPower;
@@ -502,36 +501,12 @@ function parseDataPoints(result, data) {
                 prevPower = result[k - 1].realP;
                 prevDate = new Date(result[k - 1].time);
                 preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
-                if (prevPower == 0) {}
             }
             k++;
             denom++;
         }
-
-
-        // for (var i = 0; i < result.length; i += stepSize) {
-        //     totalPower = 0;
-        //     var stopPoint = i + stepSize;
-        //     if (i + stepSize > result.length) {
-        //         stopPoint = result.length;
-        //     }
-
-        //     var prevDate, currentDate, prevPower, currentPower, preIntervalE = null;
-        //     for (var k = i; k < stopPoint; k++) {
-        //         currentDate = new Date(result[k].time);
-        //         currentPower = result[k].realP;
-        //         totalPower += currentPower;
-        //         if (k > 0) {
-        //             prevPower = result[k - 1].realP;
-        //             prevDate = new Date(result[k - 1].time);
-        //             preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
-        //             if (prevPower == 0) {
-
-        //             }
-        //         }
-        //     }
-        console.log('out of loop , i is: ' + i);
-        intervalE = preIntervalE / (1000 * 3600); //energy in Watt-Hours
+        // console.log('out of loop , i is: ' + i);
+        intervalE = preIntervalE / 3600000; //energy in Watt-Hours
         // intervalE += tempE / (stopPoint - i);
         // console.log(k + ": IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
         totalPower = totalPower / denom; //need to normalize for number of datapoints
@@ -555,7 +530,8 @@ function parseDataPoints(result, data) {
         var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
         var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;
-
+        i += denom;
+        console.log('in pre graph i is: ' + i + " / " + result.length);
         if (i == 0 && data.resize) clearGraphs = true;
         if (i < result.length) {
             io.sockets.emit("updateResult", {
@@ -581,5 +557,6 @@ function parseDataPoints(result, data) {
                 clearGraphs: false
             });
         }
+
     }
 }
