@@ -434,11 +434,11 @@ io.sockets.on("connection", function(socket) {
         sql = "SELECT * FROM " + databaseName;
 
         let win_length;
-    	if (data.win_length) {
-    		win_length = data.win_length;
-    	} else {
-    		win_length = 1;
-    	}
+        if (data.win_length) {
+            win_length = data.win_length;
+        } else {
+            win_length = 1;
+        }
         sql += " WHERE time >= now() - interval " + win_length;
         if (data.dimension) {
             sql += " " + data.dimension;
@@ -470,26 +470,31 @@ io.sockets.on("connection", function(socket) {
     }
 });
 
-var maxSteps = 1500;
+var maxSteps = 3; //time in hours
+maxSteps = maxSteps * 3600000; //time in milli seconds
 
 function parseDataPoints(result, data) {
     //The abreviations here may not all be correct, they are guesses.
     var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
 
-    if(data.numSteps) maxSteps = data.numSteps; //get max number of datapoints to display
-    var stepSize = Math.ceil(result.length / maxSteps);
+    // if (data.numSteps) maxSteps = data.numSteps; //get max number of datapoints to display
+    // var stepSize = Math.ceil(result.length / maxSteps);
     var intervalE = 0;
     var totalPower = null;
 
-    for (var i = 0; i < result.length; i += stepSize) {
+    var i = 0; //index
+    while (i < result.length) {
+        // console.log("in loop 1, i is: " + i);
         totalPower = 0;
-        var stopPoint = i + stepSize;
-        if (i + stepSize > result.length) {
-            stopPoint = result.length;
-        }
-
-        var prevDate, currentDate, prevPower, currentPower, preIntervalE = null;
-        for (var k = i; k < stopPoint; k++) {
+        var prevDate, currentDate, prevPower, currentPower, preIntervalE, initDate = null;
+        var k = i;
+        var denom = 0;
+        initDate = new Date(result[k].time);
+        // currentDate = new Date(result[k].time);
+        // for (var k = i; k < stopPoint; k++) {
+        while ((Date.parse(currentDate) - Date.parse(initDate)) < maxSteps && k < result.length) {
+            // console.log('in loop 2, i is: ' + i);
+            i = k;
             currentDate = new Date(result[k].time);
             currentPower = result[k].realP;
             totalPower += currentPower;
@@ -497,15 +502,39 @@ function parseDataPoints(result, data) {
                 prevPower = result[k - 1].realP;
                 prevDate = new Date(result[k - 1].time);
                 preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
-                if (prevPower == 0) {
-
-                }
+                if (prevPower == 0) {}
             }
+            k++;
+            denom++;
         }
-        intervalE = preIntervalE / (1000*3600); //energy in Watt-Hours
+
+
+        // for (var i = 0; i < result.length; i += stepSize) {
+        //     totalPower = 0;
+        //     var stopPoint = i + stepSize;
+        //     if (i + stepSize > result.length) {
+        //         stopPoint = result.length;
+        //     }
+
+        //     var prevDate, currentDate, prevPower, currentPower, preIntervalE = null;
+        //     for (var k = i; k < stopPoint; k++) {
+        //         currentDate = new Date(result[k].time);
+        //         currentPower = result[k].realP;
+        //         totalPower += currentPower;
+        //         if (k > 0) {
+        //             prevPower = result[k - 1].realP;
+        //             prevDate = new Date(result[k - 1].time);
+        //             preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
+        //             if (prevPower == 0) {
+
+        //             }
+        //         }
+        //     }
+        console.log('out of loop , i is: ' + i);
+        intervalE = preIntervalE / (1000 * 3600); //energy in Watt-Hours
         // intervalE += tempE / (stopPoint - i);
         // console.log(k + ": IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
-        totalPower = totalPower / (stopPoint - i);
+        totalPower = totalPower / denom; //need to normalize for number of datapoints
         // console.log("test intervalE: " + intervalE  )
         var timeString = "" + result[i].time;
         var timeArray = timeString.split(/[- :]/);
@@ -528,7 +557,7 @@ function parseDataPoints(result, data) {
         var clearGraphs = false;
 
         if (i == 0 && data.resize) clearGraphs = true;
-        if (i < result.length - stepSize) {
+        if (i < result.length) {
             io.sockets.emit("updateResult", {
                 user: data.userName,
                 x: timeStringF,
