@@ -36,7 +36,7 @@
     <div class="container">
 
       <form class="form-signin">
-        <h2 class="form-signin-heading">Please sign in</h2>
+        <h2 class="form-signin-heading">Please sign in to the CPH Demo</h2>
         <label for="inputEmail" class="sr-only">Username</label>
         <input type="names" id="inputEmail" class="form-control" placeholder="Email address or Username" required autofocus>
         <label for="inputPassword" class="sr-only">Password</label>
@@ -48,8 +48,11 @@
         </div> -->
         <button class="btn btn-lg btn-primary btn-block" type="submit" onclick="login()">Sign in</button>
       </form>
-
+      <p></p>
+      <p></p>
+      <button class="btn btn-default" type="submit" onclick="goHome()">Return to Site</button>
     </div> <!-- /container -->
+
 
 
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -98,6 +101,9 @@
         }
       });
 
+      function goHome(){
+        window.location.replace('http://cyberpoweredhome.com');
+      }
       function load_page(page, path = '/'){
         var qr=new XMLHttpRequest();
         qr.open('get',path + page);
