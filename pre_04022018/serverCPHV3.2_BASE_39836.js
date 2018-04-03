@@ -134,17 +134,15 @@ function storeIncomingData(dataArray, labelArray) {
             dataArray[i] = 0
         }
     }
-    var databaseName = "timeEntryuserA2_Vect"; //+data.user;
+    var databaseName = "timeEntryuserA2"; //+data.user;
     var sql = "SELECT * FROM " + databaseName + " ORDER BY time DESC LIMIT 1";
     var atZero = false;
     con.query(sql, function(err1, result1) {
         if (err1) throw err1;
         // console.log("if at zero current should be: " + result1[0].current);
         var incomingDiff;
-        if (result1.length > 0) {
-            if (result1[0].current) {
-                incomingDiff = Math.abs(result1[0].current - dataArray[0])
-            }
+        if (result1[0].current) {
+            incomingDiff = Math.abs(result1[0].current - dataArray[0])
         } else {
             incomingDiff = 1;
         }
@@ -154,7 +152,6 @@ function storeIncomingData(dataArray, labelArray) {
                 dataArray[0] + ", " + dataArray[1] + ", " + dataArray[2] + ", " + dataArray[3] +
                 ", " + dataArray[4] + ", " + dataArray[5] + ", " + dataArray[6] + ", " + dataArray[7] +
                 ", " + dataArray[8] + ", " + dataArray[9] + ", " + dataArray[10] + ", " + dataArray[11] + ")";
-
             con.query(sql, function(err, result) {
                 if (err) throw err;
                 io.sockets.emit("changeLogged", {
@@ -419,8 +416,8 @@ io.sockets.on("connection", function(socket) {
     function updateServerDisplay(data) {
         deviceInfoPush();
         // console.log('change data below');
-        // measureChange("timeEntryuserA2_Vect"); //FIXME, this is just for testing
-        var databaseName = "timeEntryuserA2_Vect";
+        // measureChange("timeEntryUserA2"); //FIXME, this is just for testing
+        var databaseName = "timeEntryuserA2";
         var date = new Date();
 
         var year = "" + date.getFullYear();
@@ -437,11 +434,11 @@ io.sockets.on("connection", function(socket) {
         sql = "SELECT * FROM " + databaseName;
 
         let win_length;
-        if (data.win_length) {
-            win_length = data.win_length;
-        } else {
-            win_length = 1;
-        }
+    	if (data.win_length) {
+    		win_length = data.win_length;
+    	} else {
+    		win_length = 1;
+    	}
         sql += " WHERE time >= now() - interval " + win_length;
         if (data.dimension) {
             sql += " " + data.dimension;
@@ -473,51 +470,46 @@ io.sockets.on("connection", function(socket) {
     }
 });
 
-var maxSteps = 60; //time in hours
+var maxSteps = 1500;
 
 function parseDataPoints(result, data) {
     //The abreviations here may not all be correct, they are guesses.
     var monthArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Nov", "Dec"];
-    // console.log('data referesh requested!' + );
-    maxSteps = data.numSteps * 60000; //time in milli seconds 1000*60
-    var i = 1;
-    var iPrev = 0;
-    var intervalE, totalPower, denom;
-    var clearFlag = true;
-    var inc = 0;
-    var baseDate;
-    var bigJumpFlag = false;
-    while (i < result.length) {
-        if(!bigJumpFlag) baseDate = new Date(result[i - 1].time);
-        var newDate = new Date(result[i].time);
-        // var prevDate = baseDate;
-        var prevPower, currentPower, prevDate;
-        denom = 0;
-        totalPower = 0;
-        intervalE = 0;
-        var iPrev = i;
-        while ((Date.parse(newDate) - Date.parse(baseDate)) < maxSteps && i < result.length) {
-            newDate = new Date(result[i].time);
-            prevDate = new Date(result[i - 1].time);
-            prevPower = result[i - 1].realP;
-            currentPower = result[i].realP;
-            totalPower += currentPower;
-            intervalE += (Date.parse(newDate) - Date.parse(prevDate)) * prevPower;
-            i++;
-            denom++;
-        }
-        if(i == iPrev){
-            bigJumpFlag = true;
-            i++;
-        } else {
-            bigJumpFlag = false;
-        }
-        intervalE = intervalE / 3600000; //energy in Watt-Hours
-        totalPower = totalPower / denom; //need to normalize for number of datapoints
-        // console.log('Previous time period was ' + (Date.parse(newDate) - Date.parse(baseDate)) + ' ms');
 
-        var timeString = "" + result[i-1].time;
+    if(data.numSteps) maxSteps = data.numSteps; //get max number of datapoints to display
+    var stepSize = Math.ceil(result.length / maxSteps);
+    var intervalE = 0;
+    var totalPower = null;
+
+    for (var i = 0; i < result.length; i += stepSize) {
+        totalPower = 0;
+        var stopPoint = i + stepSize;
+        if (i + stepSize > result.length) {
+            stopPoint = result.length;
+        }
+
+        var prevDate, currentDate, prevPower, currentPower, preIntervalE = null;
+        for (var k = i; k < stopPoint; k++) {
+            currentDate = new Date(result[k].time);
+            currentPower = result[k].realP;
+            totalPower += currentPower;
+            if (k > 0) {
+                prevPower = result[k - 1].realP;
+                prevDate = new Date(result[k - 1].time);
+                preIntervalE += (Date.parse(currentDate) - Date.parse(prevDate)) * prevPower; //energy in w-h, extra 100
+                if (prevPower == 0) {
+
+                }
+            }
+        }
+        intervalE = preIntervalE / (1000*3600); //energy in Watt-Hours
+        // intervalE += tempE / (stopPoint - i);
+        // console.log(k + ": IntervalE is " + intervalE + " With prev p = " + prevPower + " date = " + currentDate);
+        totalPower = totalPower / (stopPoint - i);
+        // console.log("test intervalE: " + intervalE  )
+        var timeString = "" + result[i].time;
         var timeArray = timeString.split(/[- :]/);
+
         var monthC = 0;
         for (var j = 0; j < monthArr.length; j++) {
             if (monthArr[j] == timeArray[1]) {
@@ -531,16 +523,12 @@ function parseDataPoints(result, data) {
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         // console.log("timeStringF:" + timeStringF);
         // console.log("result[i].power:" + result[i].realP);
-        var harmonics = [result[i-1].x1, result[i-1].x2, result[i-1].x3, result[i-1].x4, result[i-1].x5, result[i-1].x6];
+        var harmonics = [result[i].x1, result[i].x2, result[i].x3, result[i].x4, result[i].x5, result[i].x6];
         var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;
-        // i += denom;
-        // console.log('in pre graph i is: ' + i + " / " + result.length);
-        if (clearFlag){
-          clearGraphs = true;
-          clearFlag = false;
-        }
-        if (i < result.length) {
+
+        if (i == 0 && data.resize) clearGraphs = true;
+        if (i < result.length - stepSize) {
             io.sockets.emit("updateResult", {
                 user: data.userName,
                 x: timeStringF,
@@ -564,6 +552,5 @@ function parseDataPoints(result, data) {
                 clearGraphs: false
             });
         }
-
     }
 }
