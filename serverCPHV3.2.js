@@ -42,12 +42,28 @@ var http = require("http"),
 
 // Listen for HTTP connections.
 // Creating a mini static file server serving our faux sign-in page, and our current landing page (landingV4.html)
+var checkFlag = false; //for checking if someone is visiting the page via url only, no password
 var app = http.createServer(function(req, resp) {
+    // verifying login:
+    var POST;
+    req.on('data', chunk => {
+        // console.log('A chunk of data has arrived: ', chunk.toString('utf8'));
+        POST += chunk.toString('utf8');
+    });
+    req.on('end', () => {
+        // console.log('No more data');
+        console.log('POST='+POST+' check=var1=17&var2=38');
+        console.log('equality?=' + POST !== "var1=17&var2=38");
+        console.log('checkFlag='+checkFlag);
+        var patt = /var1=17&var2=38/;
+        checkFlag = patt.test(POST) || checkFlag;
+    })
     var pathname = url.parse(req.url).pathname; // parse path based on URL
     switch (pathname) {
         case '/signinV4.html':
             break;
         case '/landingV4.html':
+            if (!checkFlag) pathname = '/signinV4.html';
             break;
         case '/LandingV3.html':
             break;
@@ -57,13 +73,13 @@ var app = http.createServer(function(req, resp) {
     }
     // serve the file according to above pathname
     fs.readFile("files" + pathname, function(err, data) {
-
-
-
         if (err) return resp.writeHead(500);
         resp.writeHead(200);
         resp.end(data);
     });
+
+
+
 
 
 });
@@ -488,7 +504,7 @@ function parseDataPoints(result, data) {
     var baseDate;
     var bigJumpFlag = false;
     while (i < result.length) {
-        if(!bigJumpFlag) baseDate = new Date(result[i - 1].time);
+        if (!bigJumpFlag) baseDate = new Date(result[i - 1].time);
         var newDate = new Date(result[i].time);
         // var prevDate = baseDate;
         var prevPower, currentPower, prevDate;
@@ -506,7 +522,7 @@ function parseDataPoints(result, data) {
             i++;
             denom++;
         }
-        if(i == iPrev){
+        if (i == iPrev) {
             bigJumpFlag = true;
             i++;
         } else {
@@ -516,7 +532,7 @@ function parseDataPoints(result, data) {
         totalPower = totalPower / denom; //need to normalize for number of datapoints
         // console.log('Previous time period was ' + (Date.parse(newDate) - Date.parse(baseDate)) + ' ms');
 
-        var timeString = "" + result[i-1].time;
+        var timeString = "" + result[i - 1].time;
         var timeArray = timeString.split(/[- :]/);
         var monthC = 0;
         for (var j = 0; j < monthArr.length; j++) {
@@ -531,14 +547,14 @@ function parseDataPoints(result, data) {
         var timeStringF = "" + timeArray[3] + "-" + monthC + "-" + timeArray[2] + " " + timeArray[4] + ":" + timeArray[5] + ":" + timeArray[6];
         // console.log("timeStringF:" + timeStringF);
         // console.log("result[i].power:" + result[i].realP);
-        var harmonics = [result[i-1].x1, result[i-1].x2, result[i-1].x3, result[i-1].x4, result[i-1].x5, result[i-1].x6];
+        var harmonics = [result[i - 1].x1, result[i - 1].x2, result[i - 1].x3, result[i - 1].x4, result[i - 1].x5, result[i - 1].x6];
         var frequencies = [0, 60, 120, 180, 240, 300];
         var clearGraphs = false;
         // i += denom;
         // console.log('in pre graph i is: ' + i + " / " + result.length);
-        if (clearFlag){
-          clearGraphs = true;
-          clearFlag = false;
+        if (clearFlag) {
+            clearGraphs = true;
+            clearFlag = false;
         }
         if (i < result.length) {
             io.sockets.emit("updateResult", {
