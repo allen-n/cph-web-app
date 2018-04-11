@@ -1,0 +1,25 @@
+{
+  "name": "package_server_cph_v3.2",
+  "version": "1.0.0",
+  "description": "Package Dependencies for CPH Server Side code V3.2",
+  "main": "serverCPHV3.2.js",
+  "scripts": {
+    "test": "test_server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://allen-n@bitbucket.org/allen-n/code.git"
+  },
+  "keywords": [
+    "cyberpoweredhome",
+    "CPH"
+  ],
+  "author": "allenn",
+  "license": "UNLICENCED",
+  "homepage": "https://bitbucket.org/allen-n/code#readme",
+  "dependencies": {
+    "mysql": "^2.15.0",
+    "particle-api-js": "^7.2.0",
+    "socket.io": "^2.1.0"
+  }
+}

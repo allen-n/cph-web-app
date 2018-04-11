@@ -95,7 +95,7 @@ var particleApp = http.createServer(function(req, res) {
         var patt = /event=send-i%2Cv%2Cpf%2Cs%2Cp%2Cq&data=/;
         if (patt.test(body)) {
             // var dataArray = body.match(/[2C|data=][0-9]*[.][0-9]*[%]/g);
-            var dataArray = body.match(/[0-9]*[.][0-9]*/g);
+            var dataArray = body.match(/[0-9]* [.][0-9]*/g);
             var labelArray = ["current", "voltage", "power factor",
                 "apparent power", "real power", "reactive power", "h1",
                 "h2", "h3", "h4", "h5", "h6", "error"
